@@ -1,0 +1,102 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  nom          String
+  prenom       String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  documents      Document[]
+  downloads      Download[]
+  refreshTokens  RefreshToken[]
+  loginAttempts  LoginAttempt[]
+
+  @@map("users")
+}
+
+model Document {
+  id            String         @id @default(uuid())
+  titre         String
+  description   String?
+  classe        String
+  matiere       String
+  annee         Int
+  fileUrl       String         @map("file_url")
+  fileType      String         @map("file_type")
+  fileSize      Int?           @map("file_size")
+  publicId      String?        @map("public_id")
+  status        DocumentStatus @default(PENDING)
+  downloadCount Int            @default(0) @map("download_count")
+  uploaderId    String         @map("uploader_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  uploader  User       @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  downloads Download[]
+
+  @@index([classe, matiere, annee])
+  @@index([status])
+  @@map("documents")
+}
+
+model Download {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  documentId   String   @map("document_id")
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("downloads")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model LoginAttempt {
+  id          String   @id @default(uuid())
+  email       String
+  ipAddress   String   @map("ip_address")
+  success     Boolean
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+  userId      String?  @map("user_id")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("login_attempts")
+}
