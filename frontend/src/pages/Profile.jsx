@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FileText, Download, Lock, Settings } from 'lucide-react'
@@ -18,6 +19,28 @@ export default function Profile() {
   const { data: uploads = [], isLoading: uploadsLoading } = useQuery({
     queryKey: ['myUploads'],
     queryFn: () => documentsApi.myUploads().then(r => r.data),
+=======
+// src/pages/Profile.jsx
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { User, FileText, Download, Lock, ChevronRight } from 'lucide-react'
+import { usersApi } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import { getClassLabel, getMatiereLabel, STATUS_LABELS } from '../utils/constants'
+import toast from 'react-hot-toast'
+
+export default function Profile() {
+  const { user, updateUser } = useAuth()
+  const qc = useQueryClient()
+  const [tab, setTab] = useState('uploads')
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '' })
+  const [pwErrors, setPwErrors] = useState({})
+  const [pwLoading, setPwLoading] = useState(false)
+
+  const { data: uploads = [], isLoading: uploadsLoading } = useQuery({
+    queryKey: ['myUploads'],
+    queryFn: () => usersApi.me().then(() => require('../services/api').documentsApi.myUploads().then(r => r.data)),
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
     enabled: tab === 'uploads',
   })
 
@@ -27,6 +50,7 @@ export default function Profile() {
     enabled: tab === 'downloads',
   })
 
+<<<<<<< HEAD
   const handleProfileChange = async (newProfile) => {
     setProfLoading(true)
     try {
@@ -36,6 +60,8 @@ export default function Profile() {
     finally { setProfLoading(false) }
   }
 
+=======
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
   const handlePasswordChange = async (e) => {
     e.preventDefault()
     const errs = {}
@@ -48,6 +74,7 @@ export default function Profile() {
     setPwLoading(true)
     try {
       await usersApi.changePassword({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword })
+<<<<<<< HEAD
       toast.success('Mot de passe modifié.')
       setPwForm({ currentPassword:'', newPassword:'', confirm:'' })
     } catch (err) { toast.error(err.response?.data?.error || 'Erreur') }
@@ -91,6 +118,35 @@ export default function Profile() {
                   <span>{user?._count?.documents ?? 0} document{user?._count?.documents !== 1 ? 's' : ''} uploadé{user?._count?.documents !== 1 ? 's' : ''}</span>
                   <span>{user?._count?.downloads ?? 0} téléchargement{user?._count?.downloads !== 1 ? 's' : ''}</span>
                 </div>
+=======
+      toast.success('Mot de passe modifié. Reconnectez-vous.')
+      setPwForm({ currentPassword: '', newPassword: '', confirm: '' })
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erreur')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-base-200 py-8 px-4">
+      <div className="max-w-2xl mx-auto space-y-4">
+        {/* Profile Card */}
+        <div className="card bg-base-100 shadow-md">
+          <div className="card-body p-6">
+            <div className="flex items-center gap-4">
+              <div className="avatar placeholder">
+                <div className="bg-primary text-primary-content rounded-full w-16">
+                  <span className="text-xl font-bold">{user?.prenom?.[0]}{user?.nom?.[0]}</span>
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{user?.prenom} {user?.nom}</h2>
+                <p className="text-sm text-base-content/60">{user?.email}</p>
+                <span className={`badge badge-sm mt-1 ${user?.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'}`}>
+                  {user?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
+                </span>
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
               </div>
             </div>
           </div>
@@ -98,13 +154,28 @@ export default function Profile() {
 
         {/* Tabs */}
         <div className="tabs tabs-boxed bg-base-100 shadow-sm p-1">
+<<<<<<< HEAD
           {TABS.map(t => (
             <button key={t.id} className={`tab gap-1.5 flex-1 text-xs sm:text-sm ${tab === t.id ? 'tab-active' : ''}`} onClick={() => setTab(t.id)}>
               {t.icon}<span className="hidden sm:inline">{t.label}</span>
+=======
+          {[
+            { id: 'uploads', label: 'Mes uploads', icon: <FileText size={15} /> },
+            { id: 'downloads', label: 'Téléchargements', icon: <Download size={15} /> },
+            { id: 'security', label: 'Sécurité', icon: <Lock size={15} /> },
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`tab gap-2 flex-1 ${tab === t.id ? 'tab-active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.icon} {t.label}
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
             </button>
           ))}
         </div>
 
+<<<<<<< HEAD
         {/* ── Mon profil ── */}
         {tab === 'profil' && (
           <div className="card bg-base-100 shadow-md">
@@ -135,27 +206,48 @@ export default function Profile() {
         )}
 
         {/* ── Mes uploads ── */}
+=======
+        {/* Tab content */}
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
         {tab === 'uploads' && (
           <div className="card bg-base-100 shadow-md">
             <div className="card-body p-4">
               <h3 className="font-semibold mb-3">Mes documents uploadés</h3>
               {uploadsLoading ? (
+<<<<<<< HEAD
                 <div className="space-y-2">{[...Array(3)].map((_,i)=><div key={i} className="skeleton h-12 w-full"/>)}</div>
               ) : uploads.length === 0 ? (
                 <div className="text-center py-8 text-base-content/50">
                   <FileText size={36} className="mx-auto mb-2 opacity-40"/>
+=======
+                <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="skeleton h-12 w-full"></div>)}</div>
+              ) : uploads.length === 0 ? (
+                <div className="text-center py-8 text-base-content/50">
+                  <FileText size={36} className="mx-auto mb-2 opacity-40" />
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   <p className="text-sm">Aucun document uploadé</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {uploads.map(doc => (
                     <div key={doc.id} className="flex items-center gap-3 p-3 bg-base-200 rounded-xl">
+<<<<<<< HEAD
                       <FileText size={18} className="text-primary flex-shrink-0"/>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{doc.titre}</p>
                         <p className="text-xs text-base-content/50">{getNiveauLabel(doc.niveau)} · {getClassLabel(doc.classe)} · {getMatiereLabel(doc.matiere)}</p>
                       </div>
                       <span className={`badge badge-sm ${STATUS_LABELS[doc.status]?.class}`}>{STATUS_LABELS[doc.status]?.label}</span>
+=======
+                      <FileText size={18} className="text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{doc.titre}</p>
+                        <p className="text-xs text-base-content/50">{getClassLabel(doc.classe)} · {getMatiereLabel(doc.matiere)} · {doc.annee}</p>
+                      </div>
+                      <span className={`badge badge-sm ${STATUS_LABELS[doc.status]?.class}`}>
+                        {STATUS_LABELS[doc.status]?.label}
+                      </span>
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                     </div>
                   ))}
                 </div>
@@ -164,27 +256,45 @@ export default function Profile() {
           </div>
         )}
 
+<<<<<<< HEAD
         {/* ── Téléchargements ── */}
+=======
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
         {tab === 'downloads' && (
           <div className="card bg-base-100 shadow-md">
             <div className="card-body p-4">
               <h3 className="font-semibold mb-3">Historique des téléchargements</h3>
               {dlLoading ? (
+<<<<<<< HEAD
                 <div className="space-y-2">{[...Array(3)].map((_,i)=><div key={i} className="skeleton h-12 w-full"/>)}</div>
               ) : downloads.length === 0 ? (
                 <div className="text-center py-8 text-base-content/50">
                   <Download size={36} className="mx-auto mb-2 opacity-40"/>
+=======
+                <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="skeleton h-12 w-full"></div>)}</div>
+              ) : downloads.length === 0 ? (
+                <div className="text-center py-8 text-base-content/50">
+                  <Download size={36} className="mx-auto mb-2 opacity-40" />
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   <p className="text-sm">Aucun téléchargement</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {downloads.map(dl => (
                     <div key={dl.id} className="flex items-center gap-3 p-3 bg-base-200 rounded-xl">
+<<<<<<< HEAD
                       <Download size={18} className="text-success flex-shrink-0"/>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{dl.document?.titre}</p>
                         <p className="text-xs text-base-content/50">
                           {getNiveauLabel(dl.document?.niveau)} · {getMatiereLabel(dl.document?.matiere)} · {new Date(dl.downloadedAt).toLocaleDateString('fr-FR')}
+=======
+                      <Download size={18} className="text-success flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{dl.document?.titre}</p>
+                        <p className="text-xs text-base-content/50">
+                          {getClassLabel(dl.document?.classe)} · {getMatiereLabel(dl.document?.matiere)} · {new Date(dl.downloadedAt).toLocaleDateString('fr-FR')}
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                         </p>
                       </div>
                     </div>
@@ -195,13 +305,17 @@ export default function Profile() {
           </div>
         )}
 
+<<<<<<< HEAD
         {/* ── Sécurité ── */}
+=======
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
         {tab === 'security' && (
           <div className="card bg-base-100 shadow-md">
             <div className="card-body p-6">
               <h3 className="font-semibold mb-4">Changer le mot de passe</h3>
               <form onSubmit={handlePasswordChange} noValidate className="space-y-3">
                 {[
+<<<<<<< HEAD
                   { label:'Mot de passe actuel', name:'currentPassword', ac:'current-password' },
                   { label:'Nouveau mot de passe', name:'newPassword',    ac:'new-password' },
                   { label:'Confirmer',            name:'confirm',        ac:'new-password' },
@@ -212,12 +326,33 @@ export default function Profile() {
                       onChange={e => setPwForm(p => ({ ...p, [f.name]: e.target.value }))}
                       className={`input input-bordered input-sm w-full ${pwErrors[f.name] ? 'input-error':''}`}
                       autoComplete={f.ac} maxLength={128}/>
+=======
+                  { label: 'Mot de passe actuel', name: 'currentPassword', ac: 'current-password' },
+                  { label: 'Nouveau mot de passe', name: 'newPassword', ac: 'new-password' },
+                  { label: 'Confirmer le nouveau mot de passe', name: 'confirm', ac: 'new-password' },
+                ].map(f => (
+                  <div key={f.name} className="form-control">
+                    <label className="label"><span className="label-text font-medium text-sm">{f.label}</span></label>
+                    <input
+                      type="password"
+                      value={pwForm[f.name]}
+                      onChange={e => setPwForm(p => ({ ...p, [f.name]: e.target.value }))}
+                      className={`input input-bordered input-sm w-full ${pwErrors[f.name] ? 'input-error' : ''}`}
+                      autoComplete={f.ac}
+                      maxLength={128}
+                    />
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                     {pwErrors[f.name] && <label className="label"><span className="label-text-alt text-error">{pwErrors[f.name]}</span></label>}
                   </div>
                 ))}
                 <button type="submit" disabled={pwLoading} className="btn btn-primary btn-sm gap-2 mt-1">
+<<<<<<< HEAD
                   {pwLoading ? <span className="loading loading-spinner loading-xs"/> : <Lock size={14}/>}
                   Mettre à jour
+=======
+                  {pwLoading ? <span className="loading loading-spinner loading-xs"></span> : <Lock size={14} />}
+                  Mettre à jour le mot de passe
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                 </button>
               </form>
             </div>

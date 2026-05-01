@@ -92,7 +92,10 @@ router.post('/upload', authMiddleware, uploadSingle('file'), async (req, res) =>
       data: {
         titre: data.titre,
         description: data.description || null,
+<<<<<<< HEAD
         niveau: data.niveau,
+=======
+>>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
         classe: data.classe,
         matiere: data.matiere,
         annee: data.annee,
