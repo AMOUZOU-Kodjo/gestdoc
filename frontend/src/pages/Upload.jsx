@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useRef, useEffect } from 'react'
 import { Upload as UploadIcon, FileText, File, X, CheckCircle } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -16,30 +15,10 @@ export default function Upload() {
   const [form, setForm]       = useState({ titre:'', description:'', niveau: searchParams.get('niveau') || '', classe:'', matiere:'', annee:'' })
   const [file, setFile]       = useState(null)
   const [errors, setErrors]   = useState({})
-=======
-// src/pages/Upload.jsx
-import { useState, useRef } from 'react'
-import { Upload as UploadIcon, FileText, File, X, CheckCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { documentsApi } from '../services/api'
-import { CLASSES, MATIERES, YEARS } from '../utils/constants'
-import toast from 'react-hot-toast'
-
-const MAX_SIZE = 20 * 1024 * 1024
-const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-
-export default function Upload() {
-  const navigate = useNavigate()
-  const fileRef = useRef()
-  const [form, setForm] = useState({ titre: '', description: '', classe: '', matiere: '', annee: '' })
-  const [file, setFile] = useState(null)
-  const [errors, setErrors] = useState({})
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
-<<<<<<< HEAD
   const classes  = form.niveau ? (CLASSES_BY_NIVEAU[form.niveau]  || []) : []
   const matieres = form.niveau ? (MATIERES_BY_NIVEAU[form.niveau] || []) : []
 
@@ -51,23 +30,10 @@ export default function Upload() {
     if (!f) return
     if (!ALLOWED.includes(f.type)) { setErrors(e => ({ ...e, file: 'Seuls PDF et DOCX sont acceptés' })); return }
     if (f.size > MAX_SIZE) { setErrors(e => ({ ...e, file: 'Le fichier dépasse 20 Mo' })); return }
-=======
-  const handleFile = (f) => {
-    if (!f) return
-    if (!ALLOWED_TYPES.includes(f.type)) {
-      setErrors(e => ({ ...e, file: 'Seuls les fichiers PDF et DOCX sont acceptés' }))
-      return
-    }
-    if (f.size > MAX_SIZE) {
-      setErrors(e => ({ ...e, file: 'Le fichier dépasse la limite de 20 Mo' }))
-      return
-    }
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
     setFile(f)
     setErrors(e => ({ ...e, file: null }))
   }
 
-<<<<<<< HEAD
   const validate = () => {
     const e = {}
     if (!form.titre || form.titre.length < 3) e.titre  = 'Titre requis (min. 3 caractères)'
@@ -76,22 +42,6 @@ export default function Upload() {
     if (!form.matiere)  e.matiere = 'Matière requise'
     if (!form.annee)    e.annee   = 'Année requise'
     if (!file)          e.file    = 'Fichier requis'
-=======
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    const f = e.dataTransfer.files[0]
-    if (f) handleFile(f)
-  }
-
-  const validate = () => {
-    const e = {}
-    if (!form.titre || form.titre.length < 3) e.titre = 'Titre requis (min. 3 caractères)'
-    if (!form.classe) e.classe = 'Classe requise'
-    if (!form.matiere) e.matiere = 'Matière requise'
-    if (!form.annee) e.annee = 'Année requise'
-    if (!file) e.file = 'Fichier requis'
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -101,7 +51,6 @@ export default function Upload() {
     if (!validate()) return
     setLoading(true)
     try {
-<<<<<<< HEAD
       const fd = new FormData()
       fd.append('file', file)
       Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v) })
@@ -114,26 +63,6 @@ export default function Upload() {
         const fe = {}; ed.details.forEach(d => { fe[d.field] = d.message }); setErrors(fe)
       } else toast.error(ed?.error || 'Erreur lors de l\'upload')
     } finally { setLoading(false) }
-=======
-      const formData = new FormData()
-      formData.append('file', file)
-      Object.entries(form).forEach(([k, v]) => { if (v) formData.append(k, v) })
-      await documentsApi.upload(formData)
-      setSuccess(true)
-      toast.success('Document uploadé ! En attente de validation.')
-    } catch (err) {
-      const errData = err.response?.data
-      if (errData?.details) {
-        const fe = {}
-        errData.details.forEach(d => { fe[d.field] = d.message })
-        setErrors(fe)
-      } else {
-        toast.error(errData?.error || 'Erreur lors de l\'upload')
-      }
-    } finally {
-      setLoading(false)
-    }
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
   }
 
   if (success) return (
@@ -142,17 +71,9 @@ export default function Upload() {
         <div className="card-body items-center text-center p-8 space-y-4">
           <CheckCircle size={56} className="text-success" />
           <h2 className="text-2xl font-bold">Document envoyé !</h2>
-<<<<<<< HEAD
           <p className="text-base-content/70">Votre document est en attente de validation par un administrateur.</p>
           <div className="flex gap-3 flex-wrap justify-center">
             <button onClick={() => { setSuccess(false); setForm({ titre:'',description:'',niveau:'',classe:'',matiere:'',annee:'' }); setFile(null) }} className="btn btn-primary">Uploader un autre</button>
-=======
-          <p className="text-base-content/70">Votre document est en attente de validation par un administrateur. Il sera publié après vérification.</p>
-          <div className="flex gap-3 flex-wrap justify-center">
-            <button onClick={() => { setSuccess(false); setForm({ titre: '', description: '', classe: '', matiere: '', annee: '' }); setFile(null) }} className="btn btn-primary">
-              Uploader un autre document
-            </button>
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
             <button onClick={() => navigate('/')} className="btn btn-ghost">Retour à l'accueil</button>
           </div>
         </div>
@@ -166,7 +87,6 @@ export default function Upload() {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body p-8">
             <div className="text-center mb-6">
-<<<<<<< HEAD
               <div className="flex justify-center mb-3"><div className="p-3 bg-primary/10 rounded-2xl"><UploadIcon size={32} className="text-primary" /></div></div>
               <h2 className="text-2xl font-bold">Uploader un document</h2>
               <p className="text-sm text-base-content/60 mt-1">Soumis à validation avant publication</p>
@@ -179,63 +99,26 @@ export default function Upload() {
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
-=======
-              <div className="flex justify-center mb-3">
-                <div className="p-3 bg-primary/10 rounded-2xl">
-                  <UploadIcon size={32} className="text-primary" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold">Uploader un document</h2>
-              <p className="text-sm text-base-content/60 mt-1">Il sera soumis à validation avant publication</p>
-            </div>
-
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              {/* File Drop Zone */}
-              <div
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${dragOver ? 'border-primary bg-primary/5' : errors.file ? 'border-error' : 'border-base-300 hover:border-primary'}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                 onClick={() => fileRef.current?.click()}
               >
                 <input ref={fileRef} type="file" accept=".pdf,.docx" className="hidden" onChange={e => handleFile(e.target.files[0])} />
                 {file ? (
                   <div className="flex items-center justify-center gap-3">
-<<<<<<< HEAD
                     {file.type === 'application/pdf' ? <FileText size={28} className="text-red-500" /> : <File size={28} className="text-blue-500" />}
                     <div className="text-left">
                       <p className="font-medium text-sm truncate max-w-xs">{file.name}</p>
                       <p className="text-xs text-base-content/50">{(file.size/(1024*1024)).toFixed(2)} Mo</p>
                     </div>
                     <button type="button" onClick={e => { e.stopPropagation(); setFile(null) }} className="btn btn-ghost btn-xs btn-circle ml-2"><X size={14} /></button>
-=======
-                    {file.type === 'application/pdf'
-                      ? <FileText size={28} className="text-red-500" />
-                      : <File size={28} className="text-blue-500" />
-                    }
-                    <div className="text-left">
-                      <p className="font-medium text-sm truncate max-w-xs">{file.name}</p>
-                      <p className="text-xs text-base-content/50">{(file.size / (1024 * 1024)).toFixed(2)} Mo</p>
-                    </div>
-                    <button type="button" onClick={e => { e.stopPropagation(); setFile(null) }} className="btn btn-ghost btn-xs btn-circle ml-2">
-                      <X size={14} />
-                    </button>
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   </div>
                 ) : (
                   <>
                     <UploadIcon size={32} className="mx-auto text-base-content/30 mb-2" />
-<<<<<<< HEAD
                     <p className="font-medium text-sm">Glissez ou cliquez pour choisir</p>
-=======
-                    <p className="font-medium text-sm">Glissez votre fichier ici ou cliquez pour choisir</p>
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                     <p className="text-xs text-base-content/50 mt-1">PDF ou DOCX — max. 20 Mo</p>
                   </>
                 )}
               </div>
-<<<<<<< HEAD
               {errors.file && <p className="text-error text-xs">{errors.file}</p>}
 
               {/* Titre */}
@@ -244,28 +127,12 @@ export default function Upload() {
                 <input type="text" placeholder="Ex: Cours de Mathématiques — Fonctions" value={form.titre}
                   onChange={e => setForm(f => ({ ...f, titre: e.target.value }))}
                   className={`input input-bordered w-full ${errors.titre ? 'input-error' : ''}`} maxLength={150} />
-=======
-              {errors.file && <p className="text-error text-xs -mt-2">{errors.file}</p>}
-
-              {/* Titre */}
-              <div className="form-control">
-                <label className="label"><span className="label-text font-medium">Titre du document *</span></label>
-                <input
-                  type="text"
-                  placeholder="Ex: Cours de Mathématiques — Fonctions"
-                  value={form.titre}
-                  onChange={e => setForm(f => ({ ...f, titre: e.target.value }))}
-                  className={`input input-bordered w-full ${errors.titre ? 'input-error' : ''}`}
-                  maxLength={150}
-                />
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                 {errors.titre && <label className="label"><span className="label-text-alt text-error">{errors.titre}</span></label>}
               </div>
 
               {/* Description */}
               <div className="form-control">
                 <label className="label"><span className="label-text font-medium">Description <span className="text-base-content/50">(optionnel)</span></span></label>
-<<<<<<< HEAD
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   className="textarea textarea-bordered w-full h-20 resize-none" maxLength={500} placeholder="Brève description du contenu..." />
               </div>
@@ -279,56 +146,27 @@ export default function Upload() {
                   {NIVEAUX.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
                 </select>
                 {errors.niveau && <label className="label"><span className="label-text-alt text-error">{errors.niveau}</span></label>}
-=======
-                <textarea
-                  placeholder="Brève description du contenu..."
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="textarea textarea-bordered w-full h-20 resize-none"
-                  maxLength={500}
-                />
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
               </div>
 
               {/* Classe + Matière */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="form-control">
                   <label className="label"><span className="label-text font-medium">Classe *</span></label>
-<<<<<<< HEAD
                   <select value={form.classe} onChange={e => setForm(f => ({ ...f, classe: e.target.value }))}
                     className={`select select-bordered w-full ${errors.classe ? 'select-error' : ''}`}
                     disabled={!form.niveau}>
                     <option value="">Sélectionner</option>
                     {classes.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-=======
-                  <select
-                    value={form.classe}
-                    onChange={e => setForm(f => ({ ...f, classe: e.target.value }))}
-                    className={`select select-bordered w-full ${errors.classe ? 'select-error' : ''}`}
-                  >
-                    <option value="">Sélectionner</option>
-                    {CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   </select>
                   {errors.classe && <label className="label"><span className="label-text-alt text-error">{errors.classe}</span></label>}
                 </div>
                 <div className="form-control">
                   <label className="label"><span className="label-text font-medium">Matière *</span></label>
-<<<<<<< HEAD
                   <select value={form.matiere} onChange={e => setForm(f => ({ ...f, matiere: e.target.value }))}
                     className={`select select-bordered w-full ${errors.matiere ? 'select-error' : ''}`}
                     disabled={!form.niveau}>
                     <option value="">Sélectionner</option>
                     {matieres.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-=======
-                  <select
-                    value={form.matiere}
-                    onChange={e => setForm(f => ({ ...f, matiere: e.target.value }))}
-                    className={`select select-bordered w-full ${errors.matiere ? 'select-error' : ''}`}
-                  >
-                    <option value="">Sélectionner</option>
-                    {MATIERES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   </select>
                   {errors.matiere && <label className="label"><span className="label-text-alt text-error">{errors.matiere}</span></label>}
                 </div>
@@ -337,18 +175,9 @@ export default function Upload() {
               {/* Année */}
               <div className="form-control">
                 <label className="label"><span className="label-text font-medium">Année académique *</span></label>
-<<<<<<< HEAD
                 <select value={form.annee} onChange={e => setForm(f => ({ ...f, annee: e.target.value }))}
                   className={`select select-bordered w-full ${errors.annee ? 'select-error' : ''}`}>
                   <option value="">Sélectionner</option>
-=======
-                <select
-                  value={form.annee}
-                  onChange={e => setForm(f => ({ ...f, annee: e.target.value }))}
-                  className={`select select-bordered w-full ${errors.annee ? 'select-error' : ''}`}
-                >
-                  <option value="">Sélectionner une année</option>
->>>>>>> 8767c594b5f953f1951d0b52cd7f38815697b7cc
                   {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
                 {errors.annee && <label className="label"><span className="label-text-alt text-error">{errors.annee}</span></label>}
