@@ -18,7 +18,7 @@ export default function AdminUsers() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['adminUsers', { search, page }],
-    queryFn: () => adminApi.getUsers({ search, page }).then(r => r.data),
+    queryFn: () => adminApi.getUsers({ search, page , limit: 6 }).then(r => r.data),
   })
 
   const mutation = useMutation({

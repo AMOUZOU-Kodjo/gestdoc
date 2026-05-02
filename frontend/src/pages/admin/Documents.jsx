@@ -17,7 +17,7 @@ export default function AdminDocuments() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['adminDocuments', { search, status: statusFilter, page }],
-    queryFn: () => adminApi.getDocuments({ search, status: statusFilter, page }).then(r => r.data),
+    queryFn: () => adminApi.getDocuments({ search, status: statusFilter, page , limit: 6}).then(r => r.data),
   })
 
   const statusMutation = useMutation({
