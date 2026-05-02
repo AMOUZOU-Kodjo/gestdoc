@@ -21,8 +21,8 @@ export default function Footer() {
   // Valeurs dynamiques avec fallback si settings non chargés
   const siteName    = s?.siteName        || 'GestDoc'
   const siteDesc    = s?.siteDescription || 'Plateforme togolaise de partage de documents scolaires et universitaires.'
-  const email       = s?.contactEmail    || 'contact@gestdoc.tg'
-  const phone       = s?.contactPhone    || '+228 90 00 00 00'
+  const email       = s?.contactEmail    || 'phipsipy@gmail.com'
+  const phone       = s?.contactPhone    || '+228 91 03 87 27'
   const address     = s?.contactAddress  || 'Lomé, Togo'
 
   // Réseaux sociaux — n'afficher que ceux qui ont une URL renseignée
