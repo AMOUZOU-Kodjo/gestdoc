@@ -121,6 +121,7 @@ export const adminApi = {
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.patch('/admin/settings', data),
+  broadcast: (data) => api.post('/admin/broadcast', data),
 }
 
 export default api

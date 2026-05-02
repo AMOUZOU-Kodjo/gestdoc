@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { BookOpen, Upload, Users, ArrowRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { NIVEAUX, getNiveauxForProfile } from '../utils/constants'
+import DonBanner from '../components/DonBanner'
 
 const NIVEAU_COLORS = {
   BEPC:       { bg: 'bg-info/10',       border: 'border-info/30',       text: 'text-info',       btn: 'btn-info' },
@@ -53,6 +54,9 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Bannière de dons (si activée par l'admin) */}
+      <DonBanner />
 
       {/* Niveau cards */}
       <div className="max-w-5xl mx-auto px-4 py-12">

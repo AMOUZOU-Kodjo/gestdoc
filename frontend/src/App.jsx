@@ -18,6 +18,8 @@ import AdminDashboard  from './pages/admin/Dashboard'
 import AdminDocuments  from './pages/admin/Documents'
 import AdminUsers      from './pages/admin/Users'
 import AdminSettings   from './pages/admin/Settings'
+import AdminBroadcast  from './pages/admin/Broadcast'
+import AdminDons       from './pages/admin/Dons'
 import Confidentialite from './pages/legal/Confidentialite'
 import Conditions      from './pages/legal/Conditions'
 
@@ -56,6 +58,8 @@ function AppRoutes() {
             <Route path="/admin/documents"  element={<ProtectedRoute adminOnly><AdminDocuments /></ProtectedRoute>} />
             <Route path="/admin/users"      element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/settings"   element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
+            <Route path="/admin/broadcast"  element={<ProtectedRoute adminOnly><AdminBroadcast /></ProtectedRoute>} />
+            <Route path="/admin/dons"       element={<ProtectedRoute adminOnly><AdminDons /></ProtectedRoute>} />
             <Route path="/confidentialite"  element={<Confidentialite />} />
             <Route path="/conditions"       element={<Conditions />} />
             <Route path="*"              element={<Navigate to="/" replace />} />
