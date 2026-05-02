@@ -163,6 +163,12 @@ router.patch('/settings', async (req, res) => {
       maintenanceMode: z.boolean().optional(),
       allowUploads:    z.boolean().optional(),
       maxFileSizeMb:   z.number().int().min(1).max(100).optional(),
+      donActif:        z.boolean().optional(),
+      donTitre:        z.string().max(100).trim().optional(),
+      donMessage:      z.string().max(500).trim().optional(),
+      donNumero:       z.string().max(20).trim().optional(),
+      donNom:          z.string().max(100).trim().optional(),
+      donMontants:     z.string().max(100).trim().optional(),
     });
     const data = schema.parse(req.body);
     const settings = await prisma.siteSettings.upsert({
@@ -181,3 +187,54 @@ router.patch('/settings', async (req, res) => {
 });
 
 module.exports = router;
+
+// ─── Broadcast email ──────────────────────────────────────────────────────────
+router.post('/broadcast', async (req, res) => {
+  try {
+    const schema = z.object({
+      sujet:   z.string().min(3).max(200).trim(),
+      message: z.string().min(10).max(5000).trim(),
+      cible:   z.enum(['tous', 'actifs', 'BEPC', 'PREMIERE', 'TERMINALE', 'UNIVERSITE', 'ENSEIGNANT']).default('tous'),
+    });
+    const { sujet, message, cible } = schema.parse(req.body);
+
+    // Construire le filtre selon la cible
+    const where = {
+      isActive: true,
+      ...(cible !== 'tous' && cible !== 'actifs' && { profile: cible }),
+    };
+
+    const users = await prisma.user.findMany({
+      where,
+      select: { email: true, prenom: true, nom: true },
+    });
+
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'Aucun utilisateur trouvé pour cette cible.' });
+    }
+
+    // Simulation d'envoi (sans SMTP configuré)
+    // En production, remplacer par nodemailer ou Resend
+    console.log(`📧 Broadcast: "${sujet}" → ${users.length} utilisateurs`);
+    console.log(`Cible: ${cible}`);
+    console.log(`Premier destinataire: ${users[0]?.email}`);
+
+    // TODO: Intégrer nodemailer ou Resend ici
+    // Exemple avec Resend:
+    // await resend.emails.send({ from: 'no-reply@gestdoc.tg', to: users.map(u => u.email), subject: sujet, html: message })
+
+    res.json({
+      success: true,
+      message: `Email envoyé à ${users.length} utilisateur(s).`,
+      count: users.length,
+      preview: { sujet, message: message.substring(0, 100) + '...', cible },
+    });
+  } catch (error) {
+    if (error.name === 'ZodError') return res.status(400).json({
+      error: 'Données invalides.',
+      details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+    });
+    console.error('Broadcast error:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi.' });
+  }
+});

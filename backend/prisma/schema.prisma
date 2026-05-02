@@ -114,6 +114,12 @@ model SiteSettings {
   maintenanceMode Boolean  @default(false) @map("maintenance_mode")
   allowUploads    Boolean  @default(true) @map("allow_uploads")
   maxFileSizeMb   Int      @default(20) @map("max_file_size_mb")
+  donActif        Boolean  @default(false) @map("don_actif")
+  donTitre        String   @default("Soutenez GestDoc 💙") @map("don_titre")
+  donMessage      String   @default("Votre don nous aide à maintenir la plateforme.") @map("don_message")
+  donNumero       String   @default("") @map("don_numero")
+  donNom          String   @default("") @map("don_nom")
+  donMontants     String   @default("500,1000,2000,5000") @map("don_montants")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("site_settings")
