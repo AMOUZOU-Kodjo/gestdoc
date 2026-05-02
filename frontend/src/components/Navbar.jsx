@@ -1,13 +1,20 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap, X, ChevronRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { NIVEAUX, getNiveauxForProfile } from '../utils/constants'
 import toast from 'react-hot-toast'
 
 export default function Navbar() {
   const { user, logout, isAdmin, hasAllAccess } = useAuth()
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isNiveauxOpen, setIsNiveauxOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const niveauxRef = useRef(null)
+  const userMenuRef = useRef(null)
+  const mobileMenuRef = useRef(null)
 
   const handleLogout = async () => {
     await logout()
@@ -19,164 +26,391 @@ export default function Navbar() {
     ? NIVEAUX.filter(n => getNiveauxForProfile(user.profile).includes(n.value) || hasAllAccess)
     : NIVEAUX
 
+  // Fermer les menus au clic en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (niveauxRef.current && !niveauxRef.current.contains(event.target)) {
+        setIsNiveauxOpen(false)
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false)
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) && !event.target.closest('.mobile-menu-trigger')) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Fermer les menus quand on change de page
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+    setIsNiveauxOpen(false)
+    setIsUserMenuOpen(false)
+  }, [location.pathname])
+
   return (
-    <div className="navbar bg-base-100 shadow-md sticky top-0 z-40">
-      <div className="navbar-start">
-        <div className="dropdown">
-          <label tabIndex={0} className="btn btn-ghost lg:hidden">
-            <Menu size={20} />
-          </label>
-          <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-56">
-            <li><Link to="/">Accueil</Link></li>
-            <li className="menu-title mt-2"><span>Niveaux</span></li>
-            {accessibleNiveaux.map(n => (
-              <li key={n.value}><Link to={n.route}>{n.label}</Link></li>
-            ))}
-            {user && <li className="mt-2"><Link to="/upload">Uploader</Link></li>}
-            {isAdmin && <li><Link to="/admin">Administration</Link></li>}
-          </ul>
+    <nav className="bg-base-100 shadow-lg sticky top-0 z-50 border-b border-base-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo - Left */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-base-200 transition-colors mobile-menu-trigger"
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
+                <BookOpen size={18} className="text-white" />
+              </div>
+              <span className="font-bold text-xl text-primary hidden sm:block">GestDoc</span>
+            </Link>
+          </div>
+
+          {/* Desktop Navigation - Center */}
+          <div className="hidden lg:flex items-center gap-1">
+            <Link
+              to="/"
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                location.pathname === '/'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-base-200 text-base-content/80 hover:text-base-content'
+              }`}
+            >
+              Accueil
+            </Link>
+
+            {/* Niveaux Dropdown */}
+            <div className="relative" ref={niveauxRef}>
+              <button
+                onClick={() => setIsNiveauxOpen(!isNiveauxOpen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isNiveauxOpen
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-base-content/80 hover:bg-base-200 hover:text-base-content'
+                }`}
+              >
+                <GraduationCap size={18} />
+                Niveaux
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${isNiveauxOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {isNiveauxOpen && (
+                <div className="absolute top-full left-0 mt-2 w-72 bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden animate-fadeIn">
+                  <div className="p-3 border-b border-base-200 bg-base-100/50">
+                    <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider">
+                      Choisissez votre niveau
+                    </p>
+                  </div>
+                  <div className="p-2">
+                    {accessibleNiveaux.map(n => (
+                      <Link
+                        key={n.value}
+                        to={n.route}
+                        onClick={() => setIsNiveauxOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                          location.pathname === n.route
+                            ? 'bg-primary/10 text-primary'
+                            : 'hover:bg-base-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full bg-${n.color || 'primary'}`}></div>
+                          <span className="text-sm font-medium">{n.label}</span>
+                        </div>
+                        <ChevronRight size={14} className="text-base-content/30" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {user && (
+              <Link
+                to="/upload"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  location.pathname === '/upload'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-base-content/80 hover:bg-base-200 hover:text-base-content'
+                }`}
+              >
+                <Upload size={18} />
+                Uploader
+              </Link>
+            )}
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  location.pathname.startsWith('/admin')
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-base-content/80 hover:bg-base-200 hover:text-base-content'
+                }`}
+              >
+                <Shield size={18} />
+                Admin
+              </Link>
+            )}
+          </div>
+
+          {/* User Menu - Right */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-base-200 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      `${user.prenom?.[0]}${user.nom?.[0]}`
+                    )}
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={`text-base-content/50 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-3 w-80 bg-base-100 rounded-2xl shadow-2xl border border-base-200 overflow-hidden animate-slideDown">
+                    {/* Profile Header */}
+                    <div className="bg-gradient-to-br from-primary to-secondary p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xl font-bold">
+                          {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            `${user.prenom?.[0]}${user.nom?.[0]}`
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-semibold text-base truncate">
+                            {user.prenom} {user.nom}
+                          </p>
+                          <p className="text-white/70 text-xs truncate mb-1">{user.email}</p>
+                          <span className={`inline-block text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                            user.role === 'ADMIN'
+                              ? 'bg-white/30 text-white'
+                              : 'bg-white/20 text-white/90'
+                          }`}>
+                            {user.role === 'ADMIN'
+                              ? '⚡ Administrateur'
+                              : user.profile === 'ENSEIGNANT'
+                              ? '👨‍🏫 Enseignant'
+                              : user.profile === 'UNIVERSITE'
+                              ? '🏫 Étudiant Universitaire'
+                              : user.profile === 'TERMINALE'
+                              ? '🎓 Élève Terminale'
+                              : user.profile === 'PREMIERE'
+                              ? '📖 Élève Première'
+                              : user.profile === 'BEPC'
+                              ? '📚 Élève BEPC'
+                              : '👤 Utilisateur'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2">
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-base-content hover:bg-base-200 transition-all"
+                      >
+                        <User size={18} className="text-primary" />
+                        <span className="text-sm font-medium">Mon Profil</span>
+                      </Link>
+                      
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-base-content hover:bg-base-200 transition-all"
+                        >
+                          <Shield size={18} className="text-primary" />
+                          <span className="text-sm font-medium">Administration</span>
+                        </Link>
+                      )}
+                      
+                      <div className="h-px bg-base-200 my-2"></div>
+                      
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-error hover:bg-error/10 transition-all w-full"
+                      >
+                        <LogOut size={18} />
+                        <span className="text-sm font-medium">Déconnexion</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link to="/login" className="btn btn-ghost btn-sm">Connexion</Link>
+                <Link to="/register" className="btn btn-primary btn-sm">Inscription</Link>
+              </div>
+            )}
+          </div>
         </div>
-        <Link to="/" className="btn btn-ghost text-xl hidden md:flex font-bold text-primary gap-2">
-          <BookOpen size={24} />
-          GestDoc
-        </Link>
       </div>
 
-      {/* Desktop nav */}
-      <div className="navbar-center hidden lg:flex">
-        <ul className="menu menu-horizontal px-1 gap-1">
-          <li><Link to="/" className={`font-medium rounded-lg ${location.pathname === '/' ? 'bg-base-200' : ''}`}>Accueil</Link></li>
+      {/* Mobile Menu Drawer */}
+      <div
+        ref={mobileMenuRef}
+        className={`fixed inset-y-0 left-0 z-50 w-80 bg-base-100 shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="p-4 border-b border-base-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <BookOpen size={18} className="text-white" />
+              </div>
+              <span className="font-bold text-xl text-primary">GestDoc</span>
+            </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 rounded-lg hover:bg-base-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
 
-          {/* Dropdown Niveaux */}
-          <li>
-            <details>
-              <summary className="font-medium gap-1">
-                <GraduationCap size={16} /> Niveaux
-              </summary>
-              <ul className="p-2 bg-base-100 shadow-lg rounded-xl w-56 z-50 border border-base-200">
+        <div className="p-4 overflow-y-auto h-full pb-20">
+          <div className="space-y-6">
+            <div>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
+                Navigation
+              </p>
+              <div className="space-y-1">
+                <Link
+                  to="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    location.pathname === '/'
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-base-200'
+                  }`}
+                >
+                  Accueil
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
+                Niveaux d'études
+              </p>
+              <div className="space-y-1">
                 {accessibleNiveaux.map(n => (
-                  <li key={n.value}>
-                    <Link
-                      to={n.route}
-                      className={`rounded-lg ${location.pathname === n.route ? 'bg-primary/10 text-primary font-medium' : ''}`}
-                    >
-                      <span className={`badge badge-sm ${n.color}`}></span>
-                      {n.label}
-                    </Link>
-                  </li>
+                  <Link
+                    key={n.value}
+                    to={n.route}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                      location.pathname === n.route
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-base-200'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full bg-${n.color || 'primary'}`}></span>
+                    {n.label}
+                  </Link>
                 ))}
-              </ul>
-            </details>
-          </li>
-
-          {user && (
-            <li>
-              <Link to="/upload" className="font-medium gap-1">
-                <Upload size={16} /> Uploader
-              </Link>
-            </li>
-          )}
-          {isAdmin && (
-            <li>
-              <Link to="/admin" className="font-medium gap-1 text-primary">
-                <Shield size={16} /> Admin
-              </Link>
-            </li>
-          )}
-        </ul>
-      </div>
-
-      <div className="navbar-end gap-2">
-        {user ? (
-          <div className="dropdown dropdown-end">
-            {/* Avatar cliquable */}
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar cursor-pointer placeholder">
-              <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                <span className="text-sm font-bold select-none">
-                  {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="bg-primary text-primary-content w-full h-full flex items-center justify-center">
-                    <span className="text-sm font-bold">{user.prenom?.[0]}{user.nom?.[0]}</span>
-                  </div>
-                )}
-                </span>
               </div>
-            </label>
+            </div>
 
-            <div tabIndex={0} className="dropdown-content mt-3 z-[1] shadow-xl bg-base-100 rounded-2xl w-64 border border-base-200 overflow-hidden">
-              {/* Carte profil — visible surtout sur mobile */}
-              <div className="bg-gradient-to-br from-primary to-secondary p-4 flex items-center gap-3">
-                {/* Photo / initiales */}
-                 <label tabIndex={0} className="btn btn-ghost btn-circle avatar cursor-pointer placeholder">
-              <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                <span className="text-sm font-bold select-none">
-                  {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="bg-primary text-primary-content w-full h-full flex items-center justify-center">
-                    <span className="text-sm font-bold">{user.prenom?.[0]}{user.nom?.[0]}</span>
-                  </div>
-                )}
-                </span>
-              </div>
-            </label>
-                {/* Nom + rôle */}
-                <div className="min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">
-                    {user.prenom} {user.nom}
-                  </p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${
-                    user.role === 'ADMIN'
-                      ? 'bg-white/30 text-white'
-                      : 'bg-white/20 text-white/90'
-                  }`}>
-                    {user.role === 'ADMIN'
-                      ? '⚡ Administrateur'
-                      : user.profile === 'ENSEIGNANT'
-                      ? '👨‍🏫 Enseignant'
-                      : user.profile === 'UNIVERSITE'
-                      ? '🏫 Étudiant'
-                      : user.profile === 'TERMINALE'
-                      ? '🎓 Élève Terminale'
-                      : user.profile === 'PREMIERE'
-                      ? '📖 Élève Première'
-                      : user.profile === 'BEPC'
-                      ? '📚 Élève BEPC'
-                      : '👤 Utilisateur'}
-                  </span>
+            {user && (
+              <div>
+                <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
+                  Actions
+                </p>
+                <div className="space-y-1">
+                  <Link
+                    to="/upload"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                      location.pathname === '/upload'
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-base-200'
+                    }`}
+                  >
+                    <Upload size={18} />
+                    Uploader un document
+                  </Link>
                 </div>
               </div>
+            )}
 
-              {/* Menu liens */}
-              <ul className="menu menu-sm p-2">
-                <li>
-                  <Link to="/profile" className="gap-2 rounded-xl">
-                    <User size={15} /> Mon Profil
+            {isAdmin && (
+              <div>
+                <div className="space-y-1">
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                      location.pathname.startsWith('/admin')
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-base-200'
+                    }`}
+                  >
+                    <Shield size={18} />
+                    Administration
                   </Link>
-                </li>
-                {isAdmin && (
-                  <li>
-                    <Link to="/admin" className="gap-2 rounded-xl">
-                      <Shield size={15} /> Administration
-                    </Link>
-                  </li>
-                )}
-                <li className="mt-1">
-                  <button onClick={handleLogout} className="gap-2 rounded-xl text-error hover:bg-error/10">
-                    <LogOut size={15} /> Déconnexion
+                </div>
+              </div>
+            )}
+
+            {user && (
+              <div>
+                <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
+                  Mon compte
+                </p>
+                <div className="space-y-1">
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-base-200 transition-all"
+                  >
+                    <User size={18} />
+                    Mon Profil
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-error hover:bg-error/10 transition-all w-full"
+                  >
+                    <LogOut size={18} />
+                    Déconnexion
                   </button>
-                </li>
-              </ul>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            <Link to="/login" className="btn btn-ghost btn-sm">Connexion</Link>
-            <Link to="/register" className="btn btn-primary btn-sm">Inscription</Link>
-          </>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Overlay pour mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fadeIn"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+    </nav>
   )
 }
