@@ -12,16 +12,17 @@ const prisma = new PrismaClient();
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const filters = filterSchema.parse(req.query);
-    const { classe, matiere, annee, search, page, limit } = filters;
+    const { niveau, classe, matiere, annee, search, page, limit } = filters;
 
     const where = {
       status: 'APPROVED',
-      ...(classe && { classe }),
+      ...(niveau  && { niveau }),
+      ...(classe  && { classe }),
       ...(matiere && { matiere }),
-      ...(annee && { annee }),
-      ...(search && {
+      ...(annee   && { annee }),
+      ...(search  && {
         OR: [
-          { titre: { contains: search, mode: 'insensitive' } },
+          { titre:       { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
         ],
       }),

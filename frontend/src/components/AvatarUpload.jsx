@@ -113,7 +113,7 @@ export default function AvatarUpload() {
           {user?.avatarUrl ? 'Changer' : 'Ajouter une photo'}
         </button>
 
-        {user?.avatarUrl && (
+        {/* {user?.avatarUrl && (
           <button
             onClick={handleDelete}
             disabled={deleting || loading}
@@ -125,9 +125,12 @@ export default function AvatarUpload() {
               : <Trash2 size={14} />
             }
           </button>
-        )}
+        )} */}
       </div>
-
+        <h2 className="text-xl block md:hidden font-bold">{user?.prenom} {user?.nom}</h2>
+        <span className={`badge badge-sm ${user?.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'} block md:hidden`}>
+                    {user?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
+                  </span>
       <p className="text-xs text-base-content/50 text-center">
         JPG, PNG, WebP — max. 2 Mo<br />Recadrage automatique en 200×200
       </p>

@@ -54,9 +54,11 @@ export default function Profile() {
     finally { setPwLoading(false) }
   }
 
+  const profileLocked = !!user?.profile && user?.role !== 'ADMIN'
+
   const TABS = [
-    { id: 'profil',    label: 'Mon profil',     icon: <Settings size={15} /> },
-    { id: 'uploads',   label: 'Mes uploads',    icon: <FileText size={15} /> },
+    { id: 'profil',    label: 'Mon profil',      icon: <Settings size={15} /> },
+    { id: 'uploads',   label: 'Mes uploads',     icon: <FileText size={15} /> },
     { id: 'downloads', label: 'Téléchargements', icon: <Download size={15} /> },
     { id: 'security',  label: 'Sécurité',        icon: <Lock size={15} /> },
   ]
@@ -68,14 +70,14 @@ export default function Profile() {
         {/* Card identité avec avatar */}
         <div className="card bg-base-100 shadow-md">
           <div className="card-body p-6">
-            <div className="flex items-center gap-5 flex-wrap">
+            <div className="md:flex items-center gap-5 flex-wrap">
               {/* Avatar cliquable */}
               <AvatarUpload />
 
               {/* Infos */}
-              <div className="flex-1 min-w-0">
+              <div className="hidden md:block flex-1 min-w-0">
                 <h2 className="text-xl font-bold">{user?.prenom} {user?.nom}</h2>
-                {/* <p className="text-sm text-base-content/60 mt-0.5">{user?.email}</p> */}
+                <p className="text-sm text-base-content/60 mt-0.5">{user?.email}</p>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <span className={`badge badge-sm ${user?.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'}`}>
                     {user?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
@@ -109,27 +111,66 @@ export default function Profile() {
         {tab === 'profil' && (
           <div className="card bg-base-100 shadow-md">
             <div className="card-body p-6">
-              <h3 className="font-semibold mb-2">Niveau d'accès</h3>
-              <p className="text-sm text-base-content/60 mb-4">Votre profil détermine les niveaux de documents auxquels vous avez accès.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PROFILS.map(p => (
-                  <button key={p.value} onClick={() => handleProfileChange(p.value)} disabled={profLoading}
-                    className={`text-left p-4 rounded-xl border-2 transition-all ${
-                      user?.profile === p.value
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-base-200 hover:border-base-300 bg-base-100'
-                    }`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span style={{ fontSize: '18px' }}>{p.icon}</span>
-                      <span className="font-medium text-sm">{p.label}</span>
-                      {user?.profile === p.value && (
-                        <span className="badge badge-primary badge-xs ml-auto">Actuel</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-base-content/50 leading-relaxed">{p.description}</p>
-                  </button>
-                ))}
-              </div>
+              <h3 className="font-semibold mb-1">Niveau d'accès</h3>
+
+              {profileLocked ? (
+                /* ── Profil verrouillé ── */
+                <div className="space-y-4">
+                  <div className="alert alert-warning text-sm py-3">
+                    <Lock size={16} className="flex-shrink-0" />
+                    <span>Votre profil est défini une fois pour toutes et ne peut plus être modifié.</span>
+                  </div>
+
+                  {/* Affiche le profil actuel en lecture seule */}
+                  {PROFILS.map(p => {
+                    const isActive = user?.profile === p.value
+                    if (!isActive) return null
+                    return (
+                      <div key={p.value} className="p-4 rounded-xl border-2 border-primary bg-primary/5">
+                        <div className="flex items-center gap-3">
+                          <span style={{ fontSize: '24px' }}>{p.icon}</span>
+                          <div>
+                            <p className="font-semibold text-sm">{p.label}</p>
+                            <p className="text-xs text-base-content/60 mt-0.5">{p.description}</p>
+                          </div>
+                          <span className="badge badge-primary badge-sm ml-auto">Actuel</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  <p className="text-xs text-base-content/50 text-center pt-2">
+                    Pour changer de profil, contactez un administrateur.
+                  </p>
+                </div>
+              ) : (
+                /* ── Profil modifiable (premier choix ou admin) ── */
+                <div className="space-y-3">
+                  <p className="text-sm text-base-content/60 mb-2">
+                    Choisissez votre profil. <strong>Ce choix est définitif</strong> et ne pourra plus être modifié.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {PROFILS.map(p => (
+                      <button key={p.value} onClick={() => handleProfileChange(p.value)}
+                        disabled={profLoading}
+                        className={`text-left p-4 rounded-xl border-2 transition-all ${
+                          user?.profile === p.value
+                            ? 'border-primary bg-primary/5 shadow-sm'
+                            : 'border-base-200 hover:border-primary/40 bg-base-100'
+                        }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span style={{ fontSize: '18px' }}>{p.icon}</span>
+                          <span className="font-medium text-sm">{p.label}</span>
+                          {user?.profile === p.value && (
+                            <span className="badge badge-primary badge-xs ml-auto">Actuel</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-base-content/50 leading-relaxed">{p.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

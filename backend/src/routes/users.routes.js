@@ -62,6 +62,20 @@ router.patch('/me', authMiddleware, async (req, res) => {
       profile: z.enum(VALID_PROFILES).optional(),
     });
     const data = schema.parse(req.body);
+
+    // Bloquer le changement de profil si déjà défini (sauf admin)
+    if (data.profile && req.user.role !== 'ADMIN') {
+      const current = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { profile: true },
+      });
+      if (current?.profile) {
+        return res.status(403).json({
+          error: 'Votre profil a déjà été défini et ne peut plus être modifié.',
+        });
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id: req.user.id }, data,
       select: { id: true, nom: true, prenom: true, email: true, role: true, profile: true, avatarUrl: true },

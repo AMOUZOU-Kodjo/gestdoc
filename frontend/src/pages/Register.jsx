@@ -7,18 +7,18 @@ import toast from 'react-hot-toast'
 
 export default function Register() {
   const { register } = useAuth()
-  const navigate = useNavigate()
+  const navigate     = useNavigate()
 
-  const [form, setForm] = useState({ nom: '', prenom: '', email: '', password: '', confirmPassword: '' })
+  const [form, setForm]       = useState({ nom: '', prenom: '', email: '', password: '', confirmPassword: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors]   = useState({})
 
   const validate = () => {
     const e = {}
     if (!form.prenom || form.prenom.length < 2) e.prenom = 'Prénom requis (min. 2 caractères)'
-    if (!form.nom || form.nom.length < 2) e.nom = 'Nom requis (min. 2 caractères)'
-    if (!form.email) e.email = 'Email requis'
+    if (!form.nom    || form.nom.length    < 2) e.nom    = 'Nom requis (min. 2 caractères)'
+    if (!form.email)                             e.email  = 'Email requis'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Email invalide'
     if (!form.password || form.password.length < 8) e.password = 'Minimum 8 caractères'
     else if (!/[A-Z]/.test(form.password)) e.password = 'Doit contenir une majuscule'
@@ -34,10 +34,10 @@ export default function Register() {
     setLoading(true)
     try {
       await register({
-        nom: form.nom.trim(),
-        prenom: form.prenom.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
+        nom:             form.nom.trim(),
+        prenom:          form.prenom.trim(),
+        email:           form.email.trim().toLowerCase(),
+        password:        form.password,
         confirmPassword: form.confirmPassword,
       })
       toast.success('Compte créé avec succès !')
@@ -56,26 +56,12 @@ export default function Register() {
     }
   }
 
-  const Field = ({ label, name, type = 'text', placeholder, autoComplete }) => (
-    <div className="form-control">
-      <label className="label"><span className="label-text font-medium">{label}</span></label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={form[name]}
-        onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
-        className={`input input-bordered w-full ${errors[name] ? 'input-error' : ''}`}
-        autoComplete={autoComplete}
-        maxLength={name === 'email' ? 255 : name.includes('password') ? 128 : 100}
-      />
-      {errors[name] && <label className="label"><span className="label-text-alt text-error">{errors[name]}</span></label>}
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4 py-10">
       <div className="card bg-base-100 shadow-xl w-full max-w-md">
         <div className="card-body p-8">
+
+          {/* Header */}
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3">
               <div className="p-3 bg-primary/10 rounded-2xl">
@@ -87,12 +73,66 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Prénom" name="prenom" placeholder="Jean" autoComplete="given-name" />
-              <Field label="Nom" name="nom" placeholder="Dupont" autoComplete="family-name" />
-            </div>
-            <Field label="Email" name="email" type="email" placeholder="jean@exemple.com" autoComplete="email" />
 
+            {/* Prénom + Nom */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Prénom</span></label>
+                <input
+                  type="text"
+                  placeholder="Jean"
+                  value={form.prenom}
+                  onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
+                  className={`input input-bordered w-full ${errors.prenom ? 'input-error' : ''}`}
+                  autoComplete="given-name"
+                  maxLength={100}
+                />
+                {errors.prenom && (
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.prenom}</span>
+                  </label>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label"><span className="label-text font-medium">Nom</span></label>
+                <input
+                  type="text"
+                  placeholder="Dupont"
+                  value={form.nom}
+                  onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
+                  className={`input input-bordered w-full ${errors.nom ? 'input-error' : ''}`}
+                  autoComplete="family-name"
+                  maxLength={100}
+                />
+                {errors.nom && (
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.nom}</span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="form-control">
+              <label className="label"><span className="label-text font-medium">Email</span></label>
+              <input
+                type="email"
+                placeholder="jean@exemple.com"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className={`input input-bordered w-full ${errors.email ? 'input-error' : ''}`}
+                autoComplete="email"
+                maxLength={255}
+              />
+              {errors.email && (
+                <label className="label">
+                  <span className="label-text-alt text-error">{errors.email}</span>
+                </label>
+              )}
+            </div>
+
+            {/* Mot de passe */}
             <div className="form-control">
               <label className="label"><span className="label-text font-medium">Mot de passe</span></label>
               <div className="relative">
@@ -105,13 +145,23 @@ export default function Register() {
                   autoComplete="new-password"
                   maxLength={128}
                 />
-                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50" onClick={() => setShowPass(s => !s)} tabIndex={-1}>
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                  onClick={() => setShowPass(s => !s)}
+                  tabIndex={-1}
+                >
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && <label className="label"><span className="label-text-alt text-error">{errors.password}</span></label>}
+              {errors.password && (
+                <label className="label">
+                  <span className="label-text-alt text-error">{errors.password}</span>
+                </label>
+              )}
             </div>
 
+            {/* Confirmer mot de passe */}
             <div className="form-control">
               <label className="label"><span className="label-text font-medium">Confirmer le mot de passe</span></label>
               <input
@@ -123,16 +173,28 @@ export default function Register() {
                 autoComplete="new-password"
                 maxLength={128}
               />
-              {errors.confirmPassword && <label className="label"><span className="label-text-alt text-error">{errors.confirmPassword}</span></label>}
+              {errors.confirmPassword && (
+                <label className="label">
+                  <span className="label-text-alt text-error">{errors.confirmPassword}</span>
+                </label>
+              )}
             </div>
 
-            <button type="submit" disabled={loading} className="btn btn-primary w-full gap-2 mt-2">
-              {loading ? <span className="loading loading-spinner loading-sm"></span> : <UserPlus size={18} />}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full gap-2 mt-2"
+            >
+              {loading
+                ? <span className="loading loading-spinner loading-sm"></span>
+                : <UserPlus size={18} />
+              }
               {loading ? 'Création...' : 'Créer mon compte'}
             </button>
           </form>
 
           <div className="divider text-xs">OU</div>
+
           <p className="text-center text-sm text-base-content/70">
             Déjà un compte ?{' '}
             <Link to="/login" className="link link-primary font-medium">Se connecter</Link>
