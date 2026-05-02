@@ -36,7 +36,7 @@ export default function Navbar() {
             {isAdmin && <li><Link to="/admin">Administration</Link></li>}
           </ul>
         </div>
-        <Link to="/" className="btn btn-ghost text-xl font-bold text-primary gap-2">
+        <Link to="/" className="btn btn-ghost text-xl hidden md:flex font-bold text-primary gap-2">
           <BookOpen size={24} />
           GestDoc
         </Link>
