@@ -1,7 +1,7 @@
 // src/pages/admin/Dashboard.jsx
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Users, FileText, Download, Clock, ArrowRight, Shield } from 'lucide-react'
+import { Users, FileText, Download, Clock, ArrowRight, Shield, Settings } from 'lucide-react'
 import { adminApi } from '../../services/api'
 import { STATUS_LABELS } from '../../utils/constants'
 
@@ -42,19 +42,19 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 gap-3">
           <Link to="/admin/documents" className="card bg-primary text-primary-content shadow hover:shadow-md transition-shadow">
             <div className="card-body p-4 flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText size={20} />
-                <span className="font-semibold">Documents</span>
-              </div>
+              <div className="flex items-center gap-3"><FileText size={20} /><span className="font-semibold">Documents</span></div>
               <ArrowRight size={18} />
             </div>
           </Link>
           <Link to="/admin/users" className="card bg-secondary text-white shadow hover:shadow-md transition-shadow">
             <div className="card-body p-4 flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Users size={20} />
-                <span className="font-semibold">Utilisateurs</span>
-              </div>
+              <div className="flex items-center gap-3"><Users size={20} /><span className="font-semibold">Utilisateurs</span></div>
+              <ArrowRight size={18} />
+            </div>
+          </Link>
+          <Link to="/admin/settings" className="card bg-neutral text-neutral-content shadow hover:shadow-md transition-shadow col-span-2">
+            <div className="card-body p-4 flex-row items-center justify-between">
+              <div className="flex items-center gap-3"><Settings size={20} /><span className="font-semibold">Paramètres du site</span></div>
               <ArrowRight size={18} />
             </div>
           </Link>

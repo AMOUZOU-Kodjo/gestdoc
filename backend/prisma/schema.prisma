@@ -100,9 +100,27 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model SiteSettings {
+  id              String   @id @default("singleton")
+  siteName        String   @default("GestDoc") @map("site_name")
+  siteDescription String   @default("Plateforme de partage de documents scolaires") @map("site_description")
+  contactEmail    String   @default("contact@gestdoc.tg") @map("contact_email")
+  contactPhone    String   @default("+228 90 00 00 00") @map("contact_phone")
+  contactAddress  String   @default("Lomé, Togo") @map("contact_address")
+  facebookUrl     String   @default("") @map("facebook_url")
+  twitterUrl      String   @default("") @map("twitter_url")
+  instagramUrl    String   @default("") @map("instagram_url")
+  youtubeUrl      String   @default("") @map("youtube_url")
+  maintenanceMode Boolean  @default(false) @map("maintenance_mode")
+  allowUploads    Boolean  @default(true) @map("allow_uploads")
+  maxFileSizeMb   Int      @default(20) @map("max_file_size_mb")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
 model LoginAttempt {
   id          String   @id @default(uuid())
-  email       String
   ipAddress   String   @map("ip_address")
   success     Boolean
   attemptedAt DateTime @default(now()) @map("attempted_at")

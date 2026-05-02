@@ -119,6 +119,8 @@ export const adminApi = {
   deleteDocument: (id) => api.delete(`/admin/documents/${id}`),
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.patch('/admin/settings', data),
 }
 
 export default api
