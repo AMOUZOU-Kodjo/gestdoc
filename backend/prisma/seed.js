@@ -22,7 +22,7 @@ async function main() {
   });
 
   console.log('✅ Admin créé:', admin.email);
-  console.log('🔑 Mot de passe: Admin@2024!');
+  console.log('🔑 Mot de passe: Admin2024@');
   console.log('⚠️  Changez ce mot de passe en production!');
 }
 

@@ -36,7 +36,7 @@ export default function Navbar() {
             {isAdmin && <li><Link to="/admin">Administration</Link></li>}
           </ul>
         </div>
-        <Link to="/" className="btn btn-ghost hidden md:flex text-xl  font-bold text-primary gap-2">
+        <Link to="/" className="btn btn-ghost text-xl font-bold text-primary gap-2">
           <BookOpen size={24} />
           GestDoc
         </Link>
@@ -89,23 +89,86 @@ export default function Navbar() {
       <div className="navbar-end gap-2">
         {user ? (
           <div className="dropdown dropdown-end">
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar cursor-pointer">
-              <div className="w-10 rounded-full overflow-hidden border-2 border-base-200">
-                {user.avatarUrl ? (
+            {/* Avatar cliquable */}
+            <label tabIndex={0} className="btn btn-ghost btn-circle avatar cursor-pointer placeholder">
+              <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                <span className="text-sm font-bold select-none">
+                  {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
                   <div className="bg-primary text-primary-content w-full h-full flex items-center justify-center">
                     <span className="text-sm font-bold">{user.prenom?.[0]}{user.nom?.[0]}</span>
                   </div>
                 )}
+                </span>
               </div>
             </label>
-            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
-              <li className="menu-title"><span>{user.prenom} {user.nom}</span></li>
-              <li><Link to="/profile"><User size={16} /> Mon Profil</Link></li>
-              {isAdmin && <li><Link to="/admin"><Shield size={16} /> Administration</Link></li>}
-              <li><button onClick={handleLogout}><LogOut size={16} /> Déconnexion</button></li>
-            </ul>
+
+            <div tabIndex={0} className="dropdown-content mt-3 z-[1] shadow-xl bg-base-100 rounded-2xl w-64 border border-base-200 overflow-hidden">
+              {/* Carte profil — visible surtout sur mobile */}
+              <div className="bg-gradient-to-br from-primary to-secondary p-4 flex items-center gap-3">
+                {/* Photo / initiales */}
+                 <label tabIndex={0} className="btn btn-ghost btn-circle avatar cursor-pointer placeholder">
+              <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                <span className="text-sm font-bold select-none">
+                  {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="bg-primary text-primary-content w-full h-full flex items-center justify-center">
+                    <span className="text-sm font-bold">{user.prenom?.[0]}{user.nom?.[0]}</span>
+                  </div>
+                )}
+                </span>
+              </div>
+            </label>
+                {/* Nom + rôle */}
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">
+                    {user.prenom} {user.nom}
+                  </p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${
+                    user.role === 'ADMIN'
+                      ? 'bg-white/30 text-white'
+                      : 'bg-white/20 text-white/90'
+                  }`}>
+                    {user.role === 'ADMIN'
+                      ? '⚡ Administrateur'
+                      : user.profile === 'ENSEIGNANT'
+                      ? '👨‍🏫 Enseignant'
+                      : user.profile === 'UNIVERSITE'
+                      ? '🏫 Étudiant'
+                      : user.profile === 'TERMINALE'
+                      ? '🎓 Élève Terminale'
+                      : user.profile === 'PREMIERE'
+                      ? '📖 Élève Première'
+                      : user.profile === 'BEPC'
+                      ? '📚 Élève BEPC'
+                      : '👤 Utilisateur'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Menu liens */}
+              <ul className="menu menu-sm p-2">
+                <li>
+                  <Link to="/profile" className="gap-2 rounded-xl">
+                    <User size={15} /> Mon Profil
+                  </Link>
+                </li>
+                {isAdmin && (
+                  <li>
+                    <Link to="/admin" className="gap-2 rounded-xl">
+                      <Shield size={15} /> Administration
+                    </Link>
+                  </li>
+                )}
+                <li className="mt-1">
+                  <button onClick={handleLogout} className="gap-2 rounded-xl text-error hover:bg-error/10">
+                    <LogOut size={15} /> Déconnexion
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         ) : (
           <>

@@ -1,7 +1,7 @@
 // src/pages/DocumentDetail.jsx
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Download, ArrowLeft, FileText, File, Calendar, BookOpen, GraduationCap, User } from 'lucide-react'
+import { Download, ArrowLeft, FileText, File, Calendar, BookOpen, GraduationCap } from 'lucide-react'
 import { documentsApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { getClassLabel, getMatiereLabel, formatFileSize } from '../utils/constants'
@@ -73,10 +73,6 @@ export default function DocumentDetail() {
               </div>
               <div>
                 <h1 className="text-xl font-bold leading-tight">{doc.titre}</h1>
-                <p className="text-sm text-base-content/60 mt-1 flex items-center gap-1">
-                  <User size={13} />
-                  Uploadé par {doc.uploader?.prenom} {doc.uploader?.nom}
-                </p>
               </div>
             </div>
 

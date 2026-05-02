@@ -2,8 +2,8 @@ import { Search, X } from 'lucide-react'
 import { MATIERES, CLASSES, YEARS } from '../utils/constants'
 
 export default function FilterBar({ filters, onChange, onReset, matieres, classes }) {
-  const matList = matieres || MATIERES
-  const clsList = classes  || CLASSES
+  const matList = (matieres && matieres.length > 0) ? matieres : MATIERES
+  const clsList = (classes  && classes.length  > 0) ? classes  : CLASSES
   const has = filters.classe || filters.matiere || filters.annee || filters.search
 
   return (

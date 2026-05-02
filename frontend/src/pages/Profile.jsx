@@ -75,7 +75,7 @@ export default function Profile() {
               {/* Infos */}
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-bold">{user?.prenom} {user?.nom}</h2>
-                <p className="text-sm text-base-content/60 mt-0.5">{user?.email}</p>
+                {/* <p className="text-sm text-base-content/60 mt-0.5">{user?.email}</p> */}
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <span className={`badge badge-sm ${user?.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'}`}>
                     {user?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}
