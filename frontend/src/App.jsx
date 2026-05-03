@@ -10,6 +10,8 @@ import Register        from './pages/Register'
 import DocumentDetail  from './pages/DocumentDetail'
 import Upload          from './pages/Upload'
 import Profile         from './pages/Profile'
+import Forum           from './pages/Forum'
+import ForumPost       from './pages/ForumPost'
 import BepcPage        from './pages/bepc/index'
 import PremierePage    from './pages/premiere/index'
 import TerminalePage   from './pages/terminale/index'
@@ -52,6 +54,8 @@ function AppRoutes() {
             <Route path="/premiere"      element={<PremierePage />} />
             <Route path="/terminale"     element={<TerminalePage />} />
             <Route path="/universite"    element={<UniversitePage />} />
+            <Route path="/forum"          element={<Forum />} />
+            <Route path="/forum/:id"      element={<ForumPost />} />
             <Route path="/upload"        element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/profile"       element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin"            element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />

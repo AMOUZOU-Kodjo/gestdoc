@@ -124,4 +124,16 @@ export const adminApi = {
   broadcast: (data) => api.post('/admin/broadcast', data),
 }
 
+// ─── Forum ────────────────────────────────────────────────────────────────────
+export const forumApi = {
+  getPosts:    (params) => api.get('/forum', { params }),
+  getPost:     (id) => api.get(`/forum/${id}`),
+  createPost:  (data) => api.post('/forum', data),
+  deletePost:  (id) => api.delete(`/forum/${id}`),
+  likePost:    (id) => api.post(`/forum/${id}/like`),
+  pinPost:     (id, pinned) => api.patch(`/forum/${id}/pin`, { pinned }),
+  createReply: (postId, data) => api.post(`/forum/${postId}/replies`, data),
+  deleteReply: (replyId) => api.delete(`/forum/replies/${replyId}`),
+}
+
 export default api

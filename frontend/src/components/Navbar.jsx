@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap, X, ChevronRight } from 'lucide-react'
+import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap, X, ChevronRight, MessageSquare } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { NIVEAUX, getNiveauxForProfile } from '../utils/constants'
 import toast from 'react-hot-toast'
@@ -81,6 +81,19 @@ export default function Navbar() {
               }`}
             >
               Accueil
+            </Link>
+            
+            {/* Lien Forum - AJOUTÉ ICI */}
+            <Link
+              to="/forum"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                location.pathname.startsWith('/forum')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-base-content/80 hover:bg-base-200 hover:text-base-content'
+              }`}
+            >
+              <MessageSquare size={18} />
+              Forum
             </Link>
 
             {/* Niveaux Dropdown */}
@@ -233,6 +246,15 @@ export default function Navbar() {
                         <span className="text-sm font-medium">Mon Profil</span>
                       </Link>
                       
+                      <Link
+                        to="/forum"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-base-content hover:bg-base-200 transition-all"
+                      >
+                        <MessageSquare size={18} className="text-primary" />
+                        <span className="text-sm font-medium">Forum</span>
+                      </Link>
+                      
                       {isAdmin && (
                         <Link
                           to="/admin"
@@ -308,6 +330,20 @@ export default function Navbar() {
                   }`}
                 >
                   Accueil
+                </Link>
+                
+                {/* Lien Forum pour mobile - AJOUTÉ ICI */}
+                <Link
+                  to="/forum"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    location.pathname.startsWith('/forum')
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-base-200'
+                  }`}
+                >
+                  <MessageSquare size={18} />
+                  Forum
                 </Link>
               </div>
             </div>

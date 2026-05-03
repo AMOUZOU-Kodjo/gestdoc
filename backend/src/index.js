@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth.routes');
 const documentRoutes = require('./routes/documents.routes');
 const userRoutes = require('./routes/users.routes');
 const adminRoutes = require('./routes/admin.routes');
+const forumRoutes = require('./routes/forum.routes');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -75,6 +76,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/forum', forumRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((req, res) => {

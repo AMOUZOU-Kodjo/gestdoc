@@ -45,6 +45,9 @@ model User {
   downloads     Download[]
   refreshTokens RefreshToken[]
   loginAttempts LoginAttempt[]
+  forumPosts    ForumPost[]   // Garder UNE SEULE fois
+  forumReplies  ForumReply[]  // Garder UNE SEULE fois
+  forumLikes    ForumLike[]   // Garder UNE SEULE fois
 
   @@map("users")
 }
@@ -135,4 +138,56 @@ model LoginAttempt {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("login_attempts")
+}
+
+// ========== MODÈLES FORUM (version complète - à GARDER) ==========
+
+model ForumPost {
+  id        String      @id @default(uuid())
+  titre     String
+  contenu   String
+  userId    String      @map("user_id")
+  niveau    String?
+  views     Int         @default(0)
+  pinned    Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies   ForumReply[]
+  likes     ForumLike[]
+
+  @@index([niveau])
+  @@index([createdAt])
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String   @id @default(uuid())
+  contenu   String
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  parentId  String?  @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      ForumPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    ForumReply?  @relation("ReplyToReply", fields: [parentId], references: [id], onDelete: SetNull)
+  children  ForumReply[] @relation("ReplyToReply")
+
+  @@map("forum_replies")
+}
+
+model ForumLike {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("forum_likes")
 }
