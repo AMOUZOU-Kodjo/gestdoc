@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProfileModal from './components/ProfileModal'
+import QuotaBanner  from './components/QuotaBanner'
 import Navbar  from './components/Navbar'
 import Footer  from './components/Footer'
 
@@ -10,6 +11,7 @@ import Register        from './pages/Register'
 import DocumentDetail  from './pages/DocumentDetail'
 import Upload          from './pages/Upload'
 import Profile         from './pages/Profile'
+import Abonnement      from './pages/Abonnement'
 import Forum           from './pages/Forum'
 import ForumPost       from './pages/ForumPost'
 import BepcPage        from './pages/bepc/index'
@@ -22,6 +24,7 @@ import AdminUsers      from './pages/admin/Users'
 import AdminSettings   from './pages/admin/Settings'
 import AdminBroadcast  from './pages/admin/Broadcast'
 import AdminDons       from './pages/admin/Dons'
+import AdminSubscriptions from './pages/admin/Subscriptions'
 import Confidentialite from './pages/legal/Confidentialite'
 import Conditions      from './pages/legal/Conditions'
 
@@ -43,6 +46,7 @@ function AppRoutes() {
       {/* Layout global : flex colonne, footer collé en bas */}
       <div className="flex flex-col min-h-screen">
         <Navbar />
+        <QuotaBanner />
         <ProfileModal />
         <main className="flex-1">
           <Routes>
@@ -54,6 +58,7 @@ function AppRoutes() {
             <Route path="/premiere"      element={<PremierePage />} />
             <Route path="/terminale"     element={<TerminalePage />} />
             <Route path="/universite"    element={<UniversitePage />} />
+            <Route path="/abonnement"     element={<Abonnement />} />
             <Route path="/forum"          element={<Forum />} />
             <Route path="/forum/:id"      element={<ForumPost />} />
             <Route path="/upload"        element={<ProtectedRoute><Upload /></ProtectedRoute>} />
@@ -62,8 +67,9 @@ function AppRoutes() {
             <Route path="/admin/documents"  element={<ProtectedRoute adminOnly><AdminDocuments /></ProtectedRoute>} />
             <Route path="/admin/users"      element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/settings"   element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
-            <Route path="/admin/broadcast"  element={<ProtectedRoute adminOnly><AdminBroadcast /></ProtectedRoute>} />
-            <Route path="/admin/dons"       element={<ProtectedRoute adminOnly><AdminDons /></ProtectedRoute>} />
+            <Route path="/admin/broadcast"      element={<ProtectedRoute adminOnly><AdminBroadcast /></ProtectedRoute>} />
+            <Route path="/admin/dons"           element={<ProtectedRoute adminOnly><AdminDons /></ProtectedRoute>} />
+            <Route path="/admin/subscriptions"  element={<ProtectedRoute adminOnly><AdminSubscriptions /></ProtectedRoute>} />
             <Route path="/confidentialite"  element={<Confidentialite />} />
             <Route path="/conditions"       element={<Conditions />} />
             <Route path="*"              element={<Navigate to="/" replace />} />

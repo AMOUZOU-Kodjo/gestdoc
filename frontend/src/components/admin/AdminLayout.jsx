@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Users, Settings,
-  Mail, Heart, Menu, X, ChevronRight, Shield
+  Mail, Heart, Menu, X, ChevronRight, Shield, Crown
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -10,8 +10,9 @@ const NAV_ITEMS = [
   { to: '/admin',           label: 'Dashboard',      icon: <LayoutDashboard size={18} />, exact: true },
   { to: '/admin/documents', label: 'Documents',      icon: <FileText size={18} /> },
   { to: '/admin/users',     label: 'Utilisateurs',   icon: <Users size={18} /> },
-  { to: '/admin/broadcast', label: 'Notifications',  icon: <Mail size={18} /> },
-  { to: '/admin/dons',      label: 'Dons',           icon: <Heart size={18} /> },
+  { to: '/admin/broadcast',     label: 'Notifications',  icon: <Mail size={18} /> },
+  { to: '/admin/subscriptions', label: 'Abonnements',    icon: <Crown size={18} /> },
+  { to: '/admin/dons',          label: 'Dons',           icon: <Heart size={18} /> },
   { to: '/admin/settings',  label: 'Paramètres',     icon: <Settings size={18} /> },
 ]
 

@@ -70,7 +70,20 @@ router.patch('/documents/:id/status', async (req, res) => {
     const { id } = req.params;
     if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID invalide.' });
     const { status } = z.object({ status: z.enum(['APPROVED','REJECTED','PENDING']) }).parse(req.body);
-    const document = await prisma.document.update({ where: { id }, data: { status }, select: { id: true, titre: true, status: true } });
+
+    const document = await prisma.document.update({
+      where: { id }, data: { status },
+      select: { id: true, titre: true, status: true, uploaderId: true },
+    });
+
+    // ── Bonus : +2 téléchargements si document approuvé ──────────────
+    if (status === 'APPROVED') {
+      const { addBonusDownloads } = require('../services/quota.service');
+      await addBonusDownloads(document.uploaderId, 2);
+      console.log(`✅ +2 téléchargements bonus → user ${document.uploaderId}`);
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     res.json(document);
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Document non trouvé.' });
@@ -238,3 +251,66 @@ router.post('/broadcast', async (req, res) => {
     res.status(500).json({ error: 'Erreur lors de l\'envoi.' });
   }
 });
+
+// ─── Abonnements ──────────────────────────────────────────────────────────────
+
+// GET /api/admin/subscriptions — Liste des abonnés
+router.get('/subscriptions', async (req, res) => {
+  try {
+    const now = new Date();
+    const subs = await prisma.subscription.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, nom: true, prenom: true, email: true } },
+      },
+    });
+    res.json(subs.map(s => ({
+      ...s,
+      isActive: s.actif && new Date(s.fin) > now,
+    })));
+  } catch { res.status(500).json({ error: 'Erreur serveur.' }); }
+});
+
+// POST /api/admin/subscriptions — Créer/renouveler un abonnement
+router.post('/subscriptions', async (req, res) => {
+  try {
+    const schema = z.object({
+      userId:    z.string().uuid(),
+      dureeJours: z.number().int().min(1).max(365).default(30),
+      montant:   z.number().int().min(0),
+      reference: z.string().max(100).optional(),
+    });
+    const { userId, dureeJours, montant, reference } = schema.parse(req.body);
+
+    const debut = new Date();
+    const fin   = new Date(debut.getTime() + dureeJours * 24 * 60 * 60 * 1000);
+
+    const sub = await prisma.subscription.upsert({
+      where:  { userId },
+      update: { actif: true, debut, fin, montant, reference: reference || null },
+      create: { userId, actif: true, debut, fin, montant, reference: reference || null },
+      include: { user: { select: { nom: true, prenom: true, email: true } } },
+    });
+
+    res.status(201).json({ ...sub, message: `Abonnement activé jusqu'au ${fin.toLocaleDateString('fr-FR')}` });
+  } catch (error) {
+    if (error.name === 'ZodError') return res.status(400).json({ error: 'Données invalides.' });
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
+// DELETE /api/admin/subscriptions/:userId — Révoquer un abonnement
+router.delete('/subscriptions/:userId', async (req, res) => {
+  try {
+    await prisma.subscription.update({
+      where: { userId: req.params.userId },
+      data:  { actif: false },
+    });
+    res.json({ message: 'Abonnement révoqué.' });
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Abonnement non trouvé.' });
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
+module.exports = router;

@@ -1,6 +1,7 @@
+
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap, X, ChevronRight, MessageSquare } from 'lucide-react'
+import { BookOpen, Upload, User, LogOut, Shield, Menu, ChevronDown, GraduationCap, X, ChevronRight, MessageSquare, Crown } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { NIVEAUX, getNiveauxForProfile } from '../utils/constants'
 import toast from 'react-hot-toast'
@@ -26,7 +27,6 @@ export default function Navbar() {
     ? NIVEAUX.filter(n => getNiveauxForProfile(user.profile).includes(n.value) || hasAllAccess)
     : NIVEAUX
 
-  // Fermer les menus au clic en dehors
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (niveauxRef.current && !niveauxRef.current.contains(event.target)) {
@@ -43,7 +43,6 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fermer les menus quand on change de page
   useEffect(() => {
     setIsMobileMenuOpen(false)
     setIsNiveauxOpen(false)
@@ -54,6 +53,7 @@ export default function Navbar() {
     <nav className="bg-base-100 shadow-lg sticky top-0 z-50 border-b border-base-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+
           {/* Logo - Left */}
           <div className="flex items-center gap-2">
             <button
@@ -82,8 +82,8 @@ export default function Navbar() {
             >
               Accueil
             </Link>
-            
-            {/* Lien Forum - AJOUTÉ ICI */}
+
+            {/* Forum */}
             <Link
               to="/forum"
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
@@ -94,6 +94,19 @@ export default function Navbar() {
             >
               <MessageSquare size={18} />
               Forum
+            </Link>
+
+            {/* Premium / Abonnement */}
+            <Link
+              to="/abonnement"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                location.pathname === '/abonnement'
+                  ? 'bg-warning/10 text-warning'
+                  : 'text-warning hover:bg-warning/10'
+              }`}
+            >
+              <Crown size={18} />
+              Premium
             </Link>
 
             {/* Niveaux Dropdown */}
@@ -115,7 +128,7 @@ export default function Navbar() {
               </button>
 
               {isNiveauxOpen && (
-                <div className="absolute top-full left-0 mt-2 w-72 bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden animate-fadeIn">
+                <div className="absolute top-full left-0 mt-2 w-72 bg-base-100 rounded-xl shadow-2xl border border-base-200 overflow-hidden">
                   <div className="p-3 border-b border-base-200 bg-base-100/50">
                     <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider">
                       Choisissez votre niveau
@@ -182,9 +195,9 @@ export default function Navbar() {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-base-200 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-md">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
                     {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                      <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
                       `${user.prenom?.[0]}${user.nom?.[0]}`
                     )}
@@ -196,13 +209,13 @@ export default function Navbar() {
                 </button>
 
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-80 bg-base-100 rounded-2xl shadow-2xl border border-base-200 overflow-hidden animate-slideDown">
+                  <div className="absolute right-0 mt-3 w-80 bg-base-100 rounded-2xl shadow-2xl border border-base-200 overflow-hidden">
                     {/* Profile Header */}
                     <div className="bg-gradient-to-br from-primary to-secondary p-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xl font-bold">
+                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                           {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                            <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                           ) : (
                             `${user.prenom?.[0]}${user.nom?.[0]}`
                           )}
@@ -245,7 +258,16 @@ export default function Navbar() {
                         <User size={18} className="text-primary" />
                         <span className="text-sm font-medium">Mon Profil</span>
                       </Link>
-                      
+
+                      <Link
+                        to="/abonnement"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-warning hover:bg-warning/10 transition-all"
+                      >
+                        <Crown size={18} />
+                        <span className="text-sm font-medium">Premium</span>
+                      </Link>
+
                       <Link
                         to="/forum"
                         onClick={() => setIsUserMenuOpen(false)}
@@ -254,7 +276,7 @@ export default function Navbar() {
                         <MessageSquare size={18} className="text-primary" />
                         <span className="text-sm font-medium">Forum</span>
                       </Link>
-                      
+
                       {isAdmin && (
                         <Link
                           to="/admin"
@@ -265,9 +287,9 @@ export default function Navbar() {
                           <span className="text-sm font-medium">Administration</span>
                         </Link>
                       )}
-                      
+
                       <div className="h-px bg-base-200 my-2"></div>
-                      
+
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-error hover:bg-error/10 transition-all w-full"
@@ -315,6 +337,8 @@ export default function Navbar() {
 
         <div className="p-4 overflow-y-auto h-full pb-20">
           <div className="space-y-6">
+
+            {/* Navigation principale */}
             <div>
               <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
                 Navigation
@@ -324,30 +348,38 @@ export default function Navbar() {
                   to="/"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                    location.pathname === '/'
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'hover:bg-base-200'
+                    location.pathname === '/' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-base-200'
                   }`}
                 >
                   Accueil
                 </Link>
-                
-                {/* Lien Forum pour mobile - AJOUTÉ ICI */}
+
                 <Link
                   to="/forum"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                    location.pathname.startsWith('/forum')
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'hover:bg-base-200'
+                    location.pathname.startsWith('/forum') ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-base-200'
                   }`}
                 >
                   <MessageSquare size={18} />
                   Forum
                 </Link>
+
+                {/* Premium dans mobile */}
+                <Link
+                  to="/abonnement"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all font-medium ${
+                    location.pathname === '/abonnement' ? 'bg-warning/10 text-warning' : 'text-warning hover:bg-warning/10'
+                  }`}
+                >
+                  <Crown size={18} />
+                  Premium ⭐
+                </Link>
               </div>
             </div>
 
+            {/* Niveaux */}
             <div>
               <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
                 Niveaux d'études
@@ -359,9 +391,7 @@ export default function Navbar() {
                     to={n.route}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                      location.pathname === n.route
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-base-200'
+                      location.pathname === n.route ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-base-200'
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full bg-${n.color || 'primary'}`}></span>
@@ -371,6 +401,7 @@ export default function Navbar() {
               </div>
             </div>
 
+            {/* Actions */}
             {user && (
               <div>
                 <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
@@ -381,9 +412,7 @@ export default function Navbar() {
                     to="/upload"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                      location.pathname === '/upload'
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-base-200'
+                      location.pathname === '/upload' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-base-200'
                     }`}
                   >
                     <Upload size={18} />
@@ -393,6 +422,7 @@ export default function Navbar() {
               </div>
             )}
 
+            {/* Admin */}
             {isAdmin && (
               <div>
                 <div className="space-y-1">
@@ -400,9 +430,7 @@ export default function Navbar() {
                     to="/admin"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                      location.pathname.startsWith('/admin')
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-base-200'
+                      location.pathname.startsWith('/admin') ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-base-200'
                     }`}
                   >
                     <Shield size={18} />
@@ -412,6 +440,7 @@ export default function Navbar() {
               </div>
             )}
 
+            {/* Mon compte */}
             {user && (
               <div>
                 <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">
@@ -436,14 +465,15 @@ export default function Navbar() {
                 </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
 
-      {/* Overlay pour mobile */}
+      {/* Overlay mobile */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fadeIn"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

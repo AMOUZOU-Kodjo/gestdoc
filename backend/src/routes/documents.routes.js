@@ -159,6 +159,21 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'ID invalide.' });
     }
 
+    // ── Vérifier le quota ──────────────────────────────────────────
+    const { checkDownloadAccess } = require('../services/quota.service');
+    const access = await checkDownloadAccess(req.user.id);
+
+    if (!access.canDownload) {
+      return res.status(403).json({
+        error: 'Quota de téléchargements atteint.',
+        code: 'QUOTA_EXCEEDED',
+        reason: access.reason,
+        totalAllowed: access.totalAllowed,
+        used: access.used,
+      });
+    }
+    // ──────────────────────────────────────────────────────────────
+
     const document = await prisma.document.findFirst({
       where: { id, status: 'APPROVED' },
     });
@@ -168,13 +183,8 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
     }
 
     await Promise.all([
-      prisma.download.create({
-        data: { userId: req.user.id, documentId: id },
-      }),
-      prisma.document.update({
-        where: { id },
-        data: { downloadCount: { increment: 1 } },
-      }),
+      prisma.download.create({ data: { userId: req.user.id, documentId: id } }),
+      prisma.document.update({ where: { id }, data: { downloadCount: { increment: 1 } } }),
     ]);
 
     res.json({ downloadUrl: document.fileUrl, titre: document.titre });
@@ -183,5 +193,7 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Erreur lors du téléchargement.' });
   }
 });
+
+module.exports = router;
 
 module.exports = router;

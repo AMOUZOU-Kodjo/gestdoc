@@ -25,13 +25,18 @@ const MAX_SIZE = 20 * 1024 * 1024; // 20 Mo
 // Compression Gzip pour tous les fichiers
 const compressBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
-    zlib.gzip(buffer, { level: 9 }, (err, compressed) => {
+    // Brotli avec qualité maximale (0-11, où 11 est le meilleur taux)
+    zlib.brotliCompress(buffer, { 
+      params: {
+        [zlib.constants.BROTLI_PARAM_QUALITY]: 11  // Maximum pour meilleure compression
+      }
+    }, (err, compressed) => {
       if (err) {
         console.warn('Compression échouée, envoi du fichier original:', err.message);
         resolve({ buffer, compressed: false, ratio: 0 });
       } else {
         const ratio = ((1 - compressed.length / buffer.length) * 100).toFixed(1);
-        console.log(`✅ Compression: ${(buffer.length/1024).toFixed(0)}Ko → ${(compressed.length/1024).toFixed(0)}Ko (-${ratio}%)`);
+        console.log(`✅ Compression Brotli: ${(buffer.length/1024).toFixed(0)}Ko → ${(compressed.length/1024).toFixed(0)}Ko (-${ratio}%)`);
         resolve({ buffer: compressed, compressed: true, ratio });
       }
     });

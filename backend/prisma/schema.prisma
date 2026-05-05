@@ -29,25 +29,27 @@ enum DocumentStatus {
 }
 
 model User {
-  id           String      @id @default(uuid())
+  id           String       @id @default(uuid())
   nom          String
   prenom       String
-  email        String      @unique
-  passwordHash String      @map("password_hash")
-  role         Role        @default(USER)
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  role         Role         @default(USER)
   profile      UserProfile?
-  avatarUrl    String?     @map("avatar_url")
-  isActive     Boolean     @default(true) @map("is_active")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  avatarUrl    String?      @map("avatar_url")
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
   documents     Document[]
   downloads     Download[]
   refreshTokens RefreshToken[]
   loginAttempts LoginAttempt[]
-  forumPosts    ForumPost[]   // Garder UNE SEULE fois
-  forumReplies  ForumReply[]  // Garder UNE SEULE fois
-  forumLikes    ForumLike[]   // Garder UNE SEULE fois
+  forumPosts    ForumPost[]
+  forumReplies  ForumReply[]
+  forumLikes    ForumLike[]
+  subscription  Subscription?
+  downloadQuota Int      @default(0) @map("download_quota") // bonus uploads validés
 
   @@map("users")
 }
@@ -105,57 +107,43 @@ model RefreshToken {
 
 model SiteSettings {
   id              String   @id @default("singleton")
-  siteName        String   @default("GestDoc") @map("site_name")
+  siteName        String   @default("GestDoc")              @map("site_name")
   siteDescription String   @default("Plateforme de partage de documents scolaires") @map("site_description")
-  contactEmail    String   @default("contact@gestdoc.tg") @map("contact_email")
-  contactPhone    String   @default("+228 90 00 00 00") @map("contact_phone")
-  contactAddress  String   @default("Lomé, Togo") @map("contact_address")
-  facebookUrl     String   @default("") @map("facebook_url")
-  twitterUrl      String   @default("") @map("twitter_url")
-  instagramUrl    String   @default("") @map("instagram_url")
-  youtubeUrl      String   @default("") @map("youtube_url")
-  maintenanceMode Boolean  @default(false) @map("maintenance_mode")
-  allowUploads    Boolean  @default(true) @map("allow_uploads")
-  maxFileSizeMb   Int      @default(20) @map("max_file_size_mb")
-  donActif        Boolean  @default(false) @map("don_actif")
-  donTitre        String   @default("Soutenez GestDoc 💙") @map("don_titre")
+  contactEmail    String   @default("contact@gestdoc.tg")   @map("contact_email")
+  contactPhone    String   @default("+228 90 00 00 00")     @map("contact_phone")
+  contactAddress  String   @default("Lomé, Togo")           @map("contact_address")
+  facebookUrl     String   @default("")                     @map("facebook_url")
+  twitterUrl      String   @default("")                     @map("twitter_url")
+  instagramUrl    String   @default("")                     @map("instagram_url")
+  youtubeUrl      String   @default("")                     @map("youtube_url")
+  maintenanceMode Boolean  @default(false)                  @map("maintenance_mode")
+  allowUploads    Boolean  @default(true)                   @map("allow_uploads")
+  maxFileSizeMb   Int      @default(20)                     @map("max_file_size_mb")
+  donActif        Boolean  @default(false)                  @map("don_actif")
+  donTitre        String   @default("Soutenez GestDoc 💙")  @map("don_titre")
   donMessage      String   @default("Votre don nous aide à maintenir la plateforme.") @map("don_message")
-  donNumero       String   @default("") @map("don_numero")
-  donNom          String   @default("") @map("don_nom")
-  donMontants     String   @default("500,1000,2000,5000") @map("don_montants")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  donNumero       String   @default("")                     @map("don_numero")
+  donNom          String   @default("")                     @map("don_nom")
+  donMontants     String   @default("500,1000,2000,5000")   @map("don_montants")
+  updatedAt       DateTime @updatedAt                       @map("updated_at")
 
   @@map("site_settings")
 }
 
-model LoginAttempt {
-  id          String   @id @default(uuid())
-  ipAddress   String   @map("ip_address")
-  success     Boolean
-  attemptedAt DateTime @default(now()) @map("attempted_at")
-  userId      String?  @map("user_id")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@map("login_attempts")
-}
-
-// ========== MODÈLES FORUM (version complète - à GARDER) ==========
-
 model ForumPost {
-  id        String      @id @default(uuid())
+  id        String   @id @default(uuid())
   titre     String
   contenu   String
-  userId    String      @map("user_id")
+  userId    String   @map("user_id")
   niveau    String?
-  views     Int         @default(0)
-  pinned    Boolean     @default(false)
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  views     Int      @default(0)
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replies   ForumReply[]
-  likes     ForumLike[]
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies ForumReply[]
+  likes   ForumLike[]
 
   @@index([niveau])
   @@index([createdAt])
@@ -171,10 +159,10 @@ model ForumReply {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      ForumPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parent    ForumReply?  @relation("ReplyToReply", fields: [parentId], references: [id], onDelete: SetNull)
-  children  ForumReply[] @relation("ReplyToReply")
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post     ForumPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent   ForumReply?  @relation("ReplyToReply", fields: [parentId], references: [id], onDelete: SetNull)
+  children ForumReply[] @relation("ReplyToReply")
 
   @@map("forum_replies")
 }
@@ -185,9 +173,37 @@ model ForumLike {
   postId    String   @map("post_id")
   createdAt DateTime @default(now()) @map("created_at")
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("forum_likes")
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  actif     Boolean  @default(true)
+  debut     DateTime @default(now()) @map("debut")
+  fin       DateTime @map("fin")
+  montant   Int
+  reference String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model LoginAttempt {
+  id          String   @id @default(uuid())
+  email       String
+  ipAddress   String   @map("ip_address")
+  success     Boolean
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+  userId      String?  @map("user_id")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("login_attempts")
 }

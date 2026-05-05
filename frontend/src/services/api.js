@@ -109,6 +109,7 @@ export const usersApi = {
   myDownloads: () => api.get('/users/me/downloads'),
   uploadAvatar: (formData) => api.post('/users/me/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteAvatar: () => api.delete('/users/me/avatar'),
+  quota: () => api.get('/users/me/quota'),
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -122,6 +123,9 @@ export const adminApi = {
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.patch('/admin/settings', data),
   broadcast: (data) => api.post('/admin/broadcast', data),
+  getSubscriptions: () => api.get('/admin/subscriptions'),
+  createSubscription: (data) => api.post('/admin/subscriptions', data),
+  revokeSubscription: (userId) => api.delete(`/admin/subscriptions/${userId}`),
 }
 
 // ─── Forum ────────────────────────────────────────────────────────────────────

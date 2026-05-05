@@ -177,4 +177,13 @@ router.get('/me/downloads', authMiddleware, async (req, res) => {
   } catch { res.status(500).json({ error: 'Erreur serveur.' }); }
 });
 
+// ── GET /api/users/me/quota — Statut téléchargements ─────────────────────────
+router.get('/me/quota', authMiddleware, async (req, res) => {
+  try {
+    const { getUserQuotaStatus } = require('../services/quota.service');
+    const status = await getUserQuotaStatus(req.user.id);
+    res.json(status);
+  } catch { res.status(500).json({ error: 'Erreur serveur.' }); }
+});
+
 module.exports = router;
