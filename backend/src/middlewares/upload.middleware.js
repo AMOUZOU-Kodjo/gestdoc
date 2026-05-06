@@ -1,12 +1,11 @@
 // src/middlewares/upload.middleware.js
-const multer = require('multer');
+const multer     = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
-const zlib = require('zlib');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
+  api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
@@ -14,75 +13,37 @@ const ALLOWED_MIMES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
 ];
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 Mo
 
-// Compression Gzip pour tous les fichiers
-const compressBuffer = (buffer) => {
-  return new Promise((resolve, reject) => {
-    // Brotli avec qualité maximale (0-11, où 11 est le meilleur taux)
-    zlib.brotliCompress(buffer, { 
-      params: {
-        [zlib.constants.BROTLI_PARAM_QUALITY]: 11  // Maximum pour meilleure compression
-      }
-    }, (err, compressed) => {
-      if (err) {
-        console.warn('Compression échouée, envoi du fichier original:', err.message);
-        resolve({ buffer, compressed: false, ratio: 0 });
-      } else {
-        const ratio = ((1 - compressed.length / buffer.length) * 100).toFixed(1);
-        console.log(`✅ Compression Brotli: ${(buffer.length/1024).toFixed(0)}Ko → ${(compressed.length/1024).toFixed(0)}Ko (-${ratio}%)`);
-        resolve({ buffer: compressed, compressed: true, ratio });
-      }
-    });
-  });
+const storage    = multer.memoryStorage();
+const fileFilter = (req, file, cb) => {
+  ALLOWED_MIMES.includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new Error('Type non autorisé. Seuls PDF et DOCX sont acceptés.'), false);
 };
 
-// Upload vers Cloudinary
-const uploadToCloudinary = (buffer, mimetype, originalSize, compressionRatio) => {
+const upload = multer({ storage, limits: { fileSize: MAX_SIZE }, fileFilter });
+
+// ─── Upload vers Cloudinary ───────────────────────────────────────────────────
+// PDF  → resource_type 'image' pour générer des vignettes
+// DOCX → resource_type 'raw'
+const uploadToCloudinary = (buffer, mimetype) => {
   return new Promise((resolve, reject) => {
-    let resourceType = 'raw';
-    let format = 'bin';
-    
-    if (mimetype.startsWith('image/')) {
-      resourceType = 'image';
-      format = mimetype.split('/')[1];
-    } else if (mimetype === 'application/pdf') {
-      resourceType = 'raw';
-      format = 'pdf';
-    } else if (mimetype.includes('word')) {
-      resourceType = 'raw';
-      format = 'docx';
-    }
-    
-    const publicId = `gestdoc/documents/doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const uploadOptions = {
-      resource_type: resourceType,
-      public_id: publicId,
-      format: format,
-      context: `original_size=${originalSize}|compression_ratio=${compressionRatio}`
-    };
-    
-    // Pour les images, ajouter des optimisations
-    if (resourceType === 'image') {
-      uploadOptions.transformation = [
-        { quality: 'auto:good' },
-        { fetch_format: 'auto' },
-        { width: 1200, crop: 'limit' }
-      ];
-    }
-    
-    const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    });
-    
+    const isPdf        = mimetype === 'application/pdf';
+    const resourceType = isPdf ? 'image' : 'raw';
+    const format       = isPdf ? 'pdf'   : 'docx';
+    const publicId     = `gestdoc/documents/doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: resourceType, public_id: publicId, format },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
     const readable = new Readable();
     readable.push(buffer);
     readable.push(null);
@@ -90,71 +51,50 @@ const uploadToCloudinary = (buffer, mimetype, originalSize, compressionRatio) =>
   });
 };
 
-// Configuration Multer
-const storage = multer.memoryStorage();
-const fileFilter = (req, file, cb) => {
-  if (ALLOWED_MIMES.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Type non autorisé. Seuls PDF, DOCX, JPG, PNG sont acceptés.'), false);
+// ─── Générer URL vignette (page 1 du PDF en JPG) ─────────────────────────────
+const getThumbnailUrl = (fileUrl, resourceType) => {
+  if (!fileUrl || resourceType !== 'image') return null;
+  try {
+    // Insérer les transformations après /upload/
+    return fileUrl.replace(
+      '/image/upload/',
+      '/image/upload/w_400,h_550,c_fit,pg_1,f_jpg,q_70/'
+    );
+  } catch {
+    return null;
   }
 };
 
-const upload = multer({ storage, limits: { fileSize: MAX_SIZE }, fileFilter });
-
-// Middleware principal
+// ─── Middleware : multer + cloudinary ─────────────────────────────────────────
 const uploadSingle = (fieldName) => async (req, res, next) => {
   upload.single(fieldName)(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
+      if (err.code === 'LIMIT_FILE_SIZE')
         return res.status(400).json({ error: 'Le fichier dépasse la limite de 20 Mo.' });
-      }
       return res.status(400).json({ error: 'Erreur upload: ' + err.message });
     }
-    if (err) return res.status(400).json({ error: err.message });
+    if (err)       return res.status(400).json({ error: err.message });
     if (!req.file) return next();
-    
+
     try {
-      const originalSize = req.file.size;
-      const mimetype = req.file.mimetype;
-      
-      console.log(`📁 Fichier reçu: ${(originalSize/1024).toFixed(0)}Ko - ${mimetype}`);
-      
-      // Compression si ce n'est pas une image (car Cloudinary gère mieux les images)
-      let finalBuffer = req.file.buffer;
-      let wasCompressed = false;
-      let compressionRatio = 0;
-      
-      if (!mimetype.startsWith('image/')) {
-        const result = await compressBuffer(req.file.buffer);
-        finalBuffer = result.buffer;
-        wasCompressed = result.compressed;
-        compressionRatio = result.ratio;
-      }
-      
-      // Upload vers Cloudinary
-      const uploadResult = await uploadToCloudinary(finalBuffer, mimetype, originalSize, compressionRatio);
-      
-      // Attacher les infos au req.file
-      req.file.path = uploadResult.secure_url;
-      req.file.filename = uploadResult.public_id;
-      req.file.originalSize = originalSize;
-      req.file.storedSize = finalBuffer.length;
-      req.file.compressionRatio = compressionRatio;
-      req.file.wasCompressed = wasCompressed;
-      
-      console.log(`✅ Upload réussi: ${uploadResult.secure_url}`);
-      if (wasCompressed) {
-        console.log(`📊 Réduction: ${compressionRatio}%`);
-      }
-      
+      const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+
+      // ✅ Upload Cloudinary réussi — on attache les infos
+      req.file.cloudinaryUrl  = result.secure_url;
+      req.file.cloudinaryId   = result.public_id;
+      req.file.resourceType   = result.resource_type;
+      req.file.cloudinaryDone = true; // flag de succès
+
       next();
-      
     } catch (uploadErr) {
-      console.error('Upload error:', uploadErr);
-      return res.status(500).json({ error: 'Erreur lors du stockage du fichier.' });
+      console.error('Cloudinary upload FAILED:', uploadErr.message);
+      // ❌ Échec Cloudinary → on arrête tout, pas de création en BDD
+      return res.status(500).json({
+        error: 'Échec du stockage du fichier. Veuillez réessayer.',
+        detail: uploadErr.message,
+      });
     }
   });
 };
 
-module.exports = { uploadSingle, cloudinary };
+module.exports = { uploadSingle, cloudinary, getThumbnailUrl };

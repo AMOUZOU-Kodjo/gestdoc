@@ -234,7 +234,7 @@ router.post('/broadcast', async (req, res) => {
 
     // TODO: Intégrer nodemailer ou Resend ici
     // Exemple avec Resend:
-    // await resend.emails.send({ from: 'no-reply@gestdoc.tg', to: users.map(u => u.email), subject: sujet, html: message })
+    await resend.emails.send({ from: 'phipsipy@gmail.com', to: users.map(u => u.email), subject: sujet, html: message })
 
     res.json({
       success: true,

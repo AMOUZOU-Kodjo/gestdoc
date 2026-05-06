@@ -9,21 +9,21 @@ import { getClassLabel, getMatiereLabel, formatFileSize } from '../utils/constan
 import toast from 'react-hot-toast'
 
 export default function DocumentDetail() {
-  const { id } = useParams()
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const qc = useQueryClient()
+  const { id }       = useParams()
+  const { user }     = useAuth()
+  const navigate     = useNavigate()
+  const qc           = useQueryClient()
   const [downloading, setDownloading] = useState(false)
 
   const { data: doc, isLoading, isError } = useQuery({
     queryKey: ['document', id],
-    queryFn: () => documentsApi.getById(id).then(r => r.data),
+    queryFn:  () => documentsApi.getById(id).then(r => r.data),
   })
 
   const { data: quota } = useQuery({
     queryKey: ['myQuota'],
-    queryFn: () => usersApi.quota().then(r => r.data),
-    enabled: !!user,
+    queryFn:  () => usersApi.quota().then(r => r.data),
+    enabled:  !!user,
   })
 
   const handleDownload = async () => {
@@ -35,15 +35,18 @@ export default function DocumentDetail() {
     setDownloading(true)
     try {
       const { data } = await documentsApi.getDownloadUrl(id)
-      window.open(data.downloadUrl, '_blank')
+
+      const link = window.open(data.downloadUrl, '_blank', 'noopener,noreferrer')
+      if (!link) {
+        window.location.href = data.downloadUrl
+      }
+
       toast.success('Téléchargement démarré !')
-      // Rafraîchir le quota après téléchargement
       qc.invalidateQueries(['myQuota'])
     } catch (err) {
       const code = err.response?.data?.code
       if (code === 'QUOTA_EXCEEDED') {
         toast.error('Quota épuisé ! Abonnez-vous ou uploadez un document.')
-        // Rafraîchir le quota
         qc.invalidateQueries(['myQuota'])
       } else {
         toast.error(err.response?.data?.error || 'Erreur lors du téléchargement')
@@ -79,12 +82,25 @@ export default function DocumentDetail() {
 
         <div className="card bg-base-100 shadow-lg">
           <div className="card-body p-6 space-y-5">
+
+            {/* Vignette PDF si disponible */}
+            {doc.thumbnailUrl && (
+              <div className="rounded-xl overflow-hidden bg-base-200 max-h-64 flex items-center justify-center">
+                <img
+                  src={doc.thumbnailUrl}
+                  alt={`Aperçu de ${doc.titre}`}
+                  className="max-h-64 object-contain"
+                  onError={e => e.target.parentElement.style.display = 'none'}
+                />
+              </div>
+            )}
+
             {/* Icon + Title */}
             <div className="flex items-start gap-4">
               <div className="p-4 bg-primary/10 rounded-2xl flex-shrink-0">
                 {doc.fileType === 'pdf'
                   ? <FileText size={36} className="text-red-500" />
-                  : <File size={36} className="text-blue-500" />
+                  : <File    size={36} className="text-blue-500" />
                 }
               </div>
               <div>
@@ -103,10 +119,10 @@ export default function DocumentDetail() {
             <div className="grid grid-cols-2 gap-3">
               {[
                 { icon: <GraduationCap size={16} />, label: 'Classe',          value: getClassLabel(doc.classe) },
-                { icon: <BookOpen size={16} />,      label: 'Matière',         value: getMatiereLabel(doc.matiere) },
-                { icon: <Calendar size={16} />,      label: 'Année',           value: doc.annee },
-                { icon: <FileText size={16} />,      label: 'Format',          value: doc.fileType?.toUpperCase() + (doc.fileSize ? ` · ${formatFileSize(doc.fileSize)}` : '') },
-                { icon: <Download size={16} />,      label: 'Téléchargements', value: doc.downloadCount },
+                { icon: <BookOpen      size={16} />, label: 'Matière',         value: getMatiereLabel(doc.matiere) },
+                { icon: <Calendar      size={16} />, label: 'Année',           value: doc.annee },
+                { icon: <FileText      size={16} />, label: 'Format',          value: doc.fileType?.toUpperCase() + (doc.fileSize ? ` · ${formatFileSize(doc.fileSize)}` : '') },
+                { icon: <Download      size={16} />, label: 'Téléchargements', value: doc.downloadCount },
               ].map((item, i) => (
                 <div key={i} className="bg-base-200 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-base-content/60 text-xs mb-1">
@@ -119,7 +135,13 @@ export default function DocumentDetail() {
 
             {/* Quota info */}
             {user && quota && !quota.unlimited && (
-              <div className={`rounded-xl p-3 text-sm flex items-center gap-2 ${quota.remaining === 0 ? 'bg-error/10 text-error' : quota.remaining === 1 ? 'bg-warning/10 text-warning' : 'bg-base-200 text-base-content/60'}`}>
+              <div className={`rounded-xl p-3 text-sm flex items-center gap-2 ${
+                quota.remaining === 0
+                  ? 'bg-error/10 text-error'
+                  : quota.remaining === 1
+                  ? 'bg-warning/10 text-warning'
+                  : 'bg-base-200 text-base-content/60'
+              }`}>
                 {quota.remaining === 0
                   ? <Lock size={15} className="flex-shrink-0" />
                   : <Download size={15} className="flex-shrink-0" />

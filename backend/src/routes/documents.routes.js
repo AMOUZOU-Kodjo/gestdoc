@@ -8,7 +8,7 @@ const { uploadDocumentSchema, filterSchema } = require('../validators/document.v
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// GET /api/documents — Liste publique (documents approuvés seulement)
+// GET /api/documents — Liste publique
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const filters = filterSchema.parse(req.query);
@@ -36,7 +36,8 @@ router.get('/', optionalAuth, async (req, res) => {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true, titre: true, description: true, classe: true, matiere: true,
-          annee: true, fileType: true, fileSize: true, downloadCount: true, createdAt: true,
+          annee: true, niveau: true, fileType: true, fileSize: true,
+          downloadCount: true, createdAt: true, thumbnailUrl: true,
           uploader: { select: { nom: true, prenom: true } },
         },
       }),
@@ -45,12 +46,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     res.json({
       documents,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
     if (error.name === 'ZodError') {
@@ -61,7 +57,7 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/documents/my/uploads — Auth required (MUST be before /:id)
+// GET /api/documents/my/uploads — Auth required (AVANT /:id)
 router.get('/my/uploads', authMiddleware, async (req, res) => {
   try {
     const documents = await prisma.document.findMany({
@@ -69,7 +65,7 @@ router.get('/my/uploads', authMiddleware, async (req, res) => {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true, titre: true, classe: true, matiere: true, annee: true,
-        fileType: true, status: true, downloadCount: true, createdAt: true,
+        niveau: true, fileType: true, status: true, downloadCount: true, createdAt: true,
       },
     });
     res.json(documents);
@@ -82,27 +78,35 @@ router.get('/my/uploads', authMiddleware, async (req, res) => {
 // POST /api/documents/upload — Auth required
 router.post('/upload', authMiddleware, uploadSingle('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Aucun fichier fourni.' });
+    // ── Vérification critique : l'upload Cloudinary doit avoir réussi ──────────
+    if (!req.file || !req.file.cloudinaryDone) {
+      return res.status(400).json({ error: 'Fichier non reçu ou upload Cloudinary échoué.' });
     }
+    // ─────────────────────────────────────────────────────────────────────────
 
-    const data = uploadDocumentSchema.parse(req.body);
-    const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'docx';
+    const data         = uploadDocumentSchema.parse(req.body);
+    const fileType     = req.file.mimetype === 'application/pdf' ? 'pdf' : 'docx';
+    const resourceType = req.file.resourceType || (fileType === 'pdf' ? 'image' : 'raw');
+
+    const { getThumbnailUrl } = require('../middlewares/upload.middleware');
+    const thumbnailUrl = getThumbnailUrl(req.file.cloudinaryUrl, resourceType);
 
     const document = await prisma.document.create({
       data: {
-        titre: data.titre,
-        description: data.description || null,
-        niveau: data.niveau,
-        classe: data.classe,
-        matiere: data.matiere,
-        annee: data.annee,
-        fileUrl: req.file.path,
+        titre:        data.titre,
+        description:  data.description || null,
+        niveau:       data.niveau,
+        classe:       data.classe,
+        matiere:      data.matiere,
+        annee:        data.annee,
+        fileUrl:      req.file.cloudinaryUrl,   // ✅ URL Cloudinary confirmée
         fileType,
-        fileSize: req.file.size,
-        publicId: req.file.filename,
-        uploaderId: req.user.id,
-        status: 'PENDING',
+        fileSize:     req.file.size,
+        publicId:     req.file.cloudinaryId,    // ✅ Public ID Cloudinary
+        resourceType,
+        thumbnailUrl,
+        uploaderId:   req.user.id,
+        status:       'PENDING',
       },
     });
 
@@ -111,9 +115,11 @@ router.post('/upload', authMiddleware, uploadSingle('file'), async (req, res) =>
       document: { id: document.id, titre: document.titre, status: document.status },
     });
   } catch (error) {
-    // Delete from Cloudinary if DB save failed
-    if (req.file?.filename) {
-      cloudinary.uploader.destroy(req.file.filename, { resource_type: 'raw' }).catch(() => {});
+    // Si l'enregistrement BDD échoue APRES upload Cloudinary → supprimer le fichier
+    if (req.file?.cloudinaryId && req.file?.resourceType) {
+      cloudinary.uploader.destroy(req.file.cloudinaryId, {
+        resource_type: req.file.resourceType,
+      }).catch(() => {});
     }
     if (error.name === 'ZodError') {
       return res.status(400).json({
@@ -121,12 +127,12 @@ router.post('/upload', authMiddleware, uploadSingle('file'), async (req, res) =>
         details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
       });
     }
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'upload.' });
+    console.error('Upload DB error:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement du document.' });
   }
 });
 
-// GET /api/documents/:id
+// GET /api/documents/:id — Détail public
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -151,7 +157,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/documents/:id/download — Auth required
+// GET /api/documents/:id/download — Auth + quota required
 router.get('/:id/download', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -159,7 +165,7 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'ID invalide.' });
     }
 
-    // ── Vérifier le quota ──────────────────────────────────────────
+    // ── Vérifier le quota ─────────────────────────────────────────────────────
     const { checkDownloadAccess } = require('../services/quota.service');
     const access = await checkDownloadAccess(req.user.id);
 
@@ -172,7 +178,6 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
         used: access.used,
       });
     }
-    // ──────────────────────────────────────────────────────────────
 
     const document = await prisma.document.findFirst({
       where: { id, status: 'APPROVED' },
@@ -182,18 +187,28 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Document non trouvé.' });
     }
 
+    // Enregistrer le téléchargement
     await Promise.all([
       prisma.download.create({ data: { userId: req.user.id, documentId: id } }),
       prisma.document.update({ where: { id }, data: { downloadCount: { increment: 1 } } }),
     ]);
 
-    res.json({ downloadUrl: document.fileUrl, titre: document.titre });
+    // ── URL de téléchargement — utiliser l'URL directe Cloudinary ────────────
+    // L'URL directe fonctionne toujours pour PDF et DOCX.
+    // On l'ouvre dans un nouvel onglet → le navigateur gère l'affichage/téléchargement.
+    const downloadUrl = document.fileUrl;
+    // ─────────────────────────────────────────────────────────────────────────
+
+    res.json({
+      downloadUrl,
+      titre:    document.titre,
+      fileType: document.fileType,
+    });
+
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ error: 'Erreur lors du téléchargement.' });
   }
 });
-
-module.exports = router;
 
 module.exports = router;
