@@ -1,32 +1,44 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { useWakeBackend } from './hooks/useWakeBackend'
 import ProfileModal from './components/ProfileModal'
 import QuotaBanner  from './components/QuotaBanner'
 import Navbar  from './components/Navbar'
 import Footer  from './components/Footer'
 
-import Home            from './pages/Home'
-import Login           from './pages/Login'
-import Register        from './pages/Register'
-import DocumentDetail  from './pages/DocumentDetail'
-import Upload          from './pages/Upload'
-import Profile         from './pages/Profile'
-import Abonnement      from './pages/Abonnement'
-import Forum           from './pages/Forum'
-import ForumPost       from './pages/ForumPost'
-import BepcPage        from './pages/bepc/index'
-import PremierePage    from './pages/premiere/index'
-import TerminalePage   from './pages/terminale/index'
-import UniversitePage  from './pages/universite/index'
-import AdminDashboard  from './pages/admin/Dashboard'
-import AdminDocuments  from './pages/admin/Documents'
-import AdminUsers      from './pages/admin/Users'
-import AdminSettings   from './pages/admin/Settings'
-import AdminBroadcast  from './pages/admin/Broadcast'
-import AdminDons       from './pages/admin/Dons'
-import AdminSubscriptions from './pages/admin/Subscriptions'
-import Confidentialite from './pages/legal/Confidentialite'
-import Conditions      from './pages/legal/Conditions'
+// Pages chargées immédiatement (critiques)
+import Home     from './pages/Home'
+import Login    from './pages/Login'
+import Register from './pages/Register'
+
+// Pages chargées en lazy (moins critiques)
+const DocumentDetail   = lazy(() => import('./pages/DocumentDetail'))
+const Upload           = lazy(() => import('./pages/Upload'))
+const Profile          = lazy(() => import('./pages/Profile'))
+const Abonnement       = lazy(() => import('./pages/Abonnement'))
+const Forum            = lazy(() => import('./pages/Forum'))
+const ForumPost        = lazy(() => import('./pages/ForumPost'))
+const BepcPage         = lazy(() => import('./pages/bepc/index'))
+const PremierePage     = lazy(() => import('./pages/premiere/index'))
+const TerminalePage    = lazy(() => import('./pages/terminale/index'))
+const UniversitePage   = lazy(() => import('./pages/universite/index'))
+const AdminDashboard   = lazy(() => import('./pages/admin/Dashboard'))
+const AdminDocuments   = lazy(() => import('./pages/admin/Documents'))
+const AdminUsers       = lazy(() => import('./pages/admin/Users'))
+const AdminSettings    = lazy(() => import('./pages/admin/Settings'))
+const AdminBroadcast   = lazy(() => import('./pages/admin/Broadcast'))
+const AdminDons        = lazy(() => import('./pages/admin/Dons'))
+const AdminSubscriptions = lazy(() => import('./pages/admin/Subscriptions'))
+const Confidentialite  = lazy(() => import('./pages/legal/Confidentialite'))
+const Conditions       = lazy(() => import('./pages/legal/Conditions'))
+
+// Spinner de chargement des pages lazy
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-base-200">
+    <span className="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+)
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth()
@@ -41,6 +53,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 }
 
 function AppRoutes() {
+  useWakeBackend() // réveille Render dès l'ouverture du site
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* Layout global : flex colonne, footer collé en bas */}
@@ -49,7 +62,8 @@ function AppRoutes() {
         <QuotaBanner />
         <ProfileModal />
         <main className="flex-1">
-          <Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/"              element={<Home />} />
             <Route path="/login"         element={<Login />} />
             <Route path="/register"      element={<Register />} />
@@ -74,6 +88,7 @@ function AppRoutes() {
             <Route path="/conditions"       element={<Conditions />} />
             <Route path="*"              element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </main>
         <Footer />
       </div>

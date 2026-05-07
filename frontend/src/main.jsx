@@ -9,8 +9,11 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
+      staleTime:          5 * 60 * 1000,  // 5 min — données considérées fraîches
+      gcTime:            30 * 60 * 1000,  // 30 min — gardées en mémoire
+      retry:              1,
+      refetchOnWindowFocus: false,         // ne pas recharger quand on revient sur l'onglet
+      refetchOnMount:    'always',
     },
   },
 })

@@ -36,7 +36,7 @@ export default function Home() {
           </div>
           <h1 className="text-4xl font-bold mb-3">GestDoc</h1>
           <p className="text-lg text-primary-content/80 mb-8 max-w-xl mx-auto">
-            Plateforme de partage de documents scolaires et universitaires — cours, exercices, annales pour tous les niveaux.
+            Plateforme de partage de documents scolaires et universitaires au TOGO — cours, exercices, annales pour tous les niveaux.
           </p>
           {!user ? (
             <div className="flex flex-wrap justify-center gap-4">

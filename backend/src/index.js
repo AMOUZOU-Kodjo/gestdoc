@@ -66,9 +66,23 @@ app.use(globalLimiter);
 app.use(express.json({ limit: '10kb' })); // Limit JSON payload size
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// ─── Cache headers pour les routes publiques ─────────────────────────────────
+app.use((req, res, next) => {
+  // Cache 2 minutes pour les listes de documents publics
+  if (req.method === 'GET' && req.path.startsWith('/api/documents') && !req.path.includes('/download')) {
+    res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=60')
+  }
+  // Cache 5 minutes pour les settings publics
+  if (req.method === 'GET' && req.path === '/api/admin/settings') {
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+  }
+  next()
+})
+
 // ─── Health Check ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.setHeader('Cache-Control', 'no-cache')
+  res.json({ status: 'ok', timestamp: new Date().toISOString() })
 });
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
