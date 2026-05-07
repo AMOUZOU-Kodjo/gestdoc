@@ -11,7 +11,7 @@ export default function DocumentCard({ doc }) {
 
       {/* Vignette PDF */}
       {hasThumbnail ? (
-        <figure className="h-40 bg-base-200 overflow-hidden relative">
+        <figure className="h-20 bg-base-200 overflow-hidden relative">
           <img
             src={doc.thumbnailUrl}
             alt={`Aperçu de ${doc.titre}`}
@@ -25,7 +25,11 @@ export default function DocumentCard({ doc }) {
           {/* Badge type fichier */}
           <span className="absolute top-2 right-2 badge badge-error badge-sm font-bold shadow">
             PDF
+            
           </span>
+
+          <span className="absolute top-2 left-2 badge badge-error badge-sm font-bold shadow">{new Date(doc.createdAt).toLocaleDateString('fr-FR')}</span>
+
         </figure>
       ) : (
         /* Placeholder pour DOCX ou si pas de vignette */
@@ -39,7 +43,7 @@ export default function DocumentCard({ doc }) {
 
       <div className="card-body p-4">
         {/* Titre */}
-        <h3 className="font-semibold text-sm leading-snug line-clamp-2">
+        <h3 className="font-semibold text-center text-sm leading-snug line-clamp-2">
           {doc.titre}
         </h3>
 
@@ -58,6 +62,8 @@ export default function DocumentCard({ doc }) {
           </span>
           <span className="badge badge-ghost badge-sm gap-1">
             <Calendar size={10} />{doc.annee}
+            {/* <span className="badge badge-ghost badge-sm  gap-1">{new Date(doc.createdAt).toLocaleDateString('fr-FR')}</span> */}
+
           </span>
         </div>
 
