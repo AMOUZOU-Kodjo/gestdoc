@@ -28,8 +28,8 @@ export default function Abonnement() {
     queryFn: fetchSettings,
   })
 
-  const numero = settings?.donNumero || '+228 XX XX XX XX'
-  const nom    = settings?.donNom    || 'GestDoc'
+  const numero = settings?.donNumero || '+228 70 85 59 01'
+  const nom    = settings?.donNom    || 'AMOUZOU Kodjo'
 
   const handleAbonner = (plan) => {
     const instructions = [
@@ -45,7 +45,7 @@ export default function Abonnement() {
       ``,
       `3. L'administrateur activera votre abonnement sous 24h.`,
       ``,
-      `Contactez-nous : ${settings?.contactEmail || 'contact@gestdoc.tg'}`,
+      `Contactez-nous : ${settings?.contactEmail || 'gestdoc63@gmail.com'}`,
     ].join('\n')
     alert(instructions)
   }

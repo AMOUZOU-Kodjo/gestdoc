@@ -135,8 +135,8 @@ export default function AdminSettings() {
                 </h2>
 
                 {[
-                  { label: 'Email de contact', key: 'contactEmail', icon: <Mail size={15} />, type: 'email', placeholder: 'contact@gestdoc.tg' },
-                  { label: 'Téléphone',        key: 'contactPhone', icon: <Phone size={15} />, type: 'text', placeholder: '+228 90 00 00 00' },
+                  { label: 'Email de contact', key: 'contactEmail', icon: <Mail size={15} />, type: 'email', placeholder: 'gestdoc63gmail.com' },
+                  { label: 'Téléphone',        key: 'contactPhone', icon: <Phone size={15} />, type: 'text', placeholder: '+228 70 85 59 01' },
                   { label: 'Adresse',          key: 'contactAddress', icon: <MapPin size={15} />, type: 'text', placeholder: 'Lomé, Togo' },
                 ].map(f => (
                   <div key={f.key} className="form-control">
