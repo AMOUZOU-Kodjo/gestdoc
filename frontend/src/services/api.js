@@ -91,16 +91,29 @@ export const authApi = {
 }
 
 // ─── Documents ────────────────────────────────────────────────────────────────
+// export const documentsApi = {
+//   getAll: (params) => api.get('/documents', { params }),
+//   getById: (id) => api.get(`/documents/${id}`),
+//   getDownloadUrl: (id) => api.get(`/documents/${id}/download`),
+//   upload: (formData) => api.post('/documents/upload', formData, {
+//     headers: { 'Content-Type': 'multipart/form-data' },
+//   }),
+//   myUploads: () => api.get('/documents/my/uploads'),
+// }
+
 export const documentsApi = {
-  getAll: (params) => api.get('/documents', { params }),
-  getById: (id) => api.get(`/documents/${id}`),
+  getAll:         (params) => api.get('/documents', { params }),
+  getById:        (id) => api.get(`/documents/${id}`),
   getDownloadUrl: (id) => api.get(`/documents/${id}/download`),
-  upload: (formData) => api.post('/documents/upload', formData, {
+  upload: (formData, onProgress) => api.post('/documents/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000, // 2 minutes — fichiers peuvent être gros
+    onUploadProgress: onProgress
+      ? (e) => onProgress(Math.round((e.loaded * 100) / (e.total || 1)))
+      : undefined,
   }),
   myUploads: () => api.get('/documents/my/uploads'),
 }
-
 // ─── Users ────────────────────────────────────────────────────────────────────
 export const usersApi = {
   me: () => api.get('/users/me'),

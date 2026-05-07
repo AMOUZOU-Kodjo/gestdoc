@@ -12,11 +12,12 @@ export default function Upload() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fileRef  = useRef()
-  const [form, setForm]       = useState({ titre:'', description:'', niveau: searchParams.get('niveau') || '', classe:'', matiere:'', annee:'' })
-  const [file, setFile]       = useState(null)
-  const [errors, setErrors]   = useState({})
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [form, setForm]         = useState({ titre:'', description:'', niveau: searchParams.get('niveau') || '', classe:'', matiere:'', annee:'' })
+  const [file, setFile]         = useState(null)
+  const [errors, setErrors]     = useState({})
+  const [loading, setLoading]   = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [success, setSuccess]   = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
   const classes  = form.niveau ? (CLASSES_BY_NIVEAU[form.niveau]  || []) : []
@@ -50,19 +51,40 @@ export default function Upload() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
+    setProgress(0)
     try {
       const fd = new FormData()
       fd.append('file', file)
       Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v) })
-      await documentsApi.upload(fd)
+
+      await documentsApi.upload(fd, (pct) => setProgress(pct))
+
       setSuccess(true)
+      setProgress(100)
       toast.success('Document uploadé ! En attente de validation.')
     } catch (err) {
+      setProgress(0)
       const ed = err.response?.data
+
+      // Erreur Cloudinary explicite
+      if (ed?.code === 'CLOUDINARY_ERROR') {
+        toast.error('Échec du stockage. Le fichier n\'a pas été enregistré. Réessayez.')
+        return
+      }
+      // Timeout
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        toast.error('Délai dépassé. Votre connexion est peut-être lente. Réessayez avec un fichier plus petit.')
+        return
+      }
+      // Erreurs de validation
       if (ed?.details) {
         const fe = {}; ed.details.forEach(d => { fe[d.field] = d.message }); setErrors(fe)
-      } else toast.error(ed?.error || 'Erreur lors de l\'upload')
-    } finally { setLoading(false) }
+      } else {
+        toast.error(ed?.error || 'Erreur lors de l\'upload. Réessayez.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (success) return (
@@ -185,8 +207,29 @@ export default function Upload() {
 
               <button type="submit" disabled={loading} className="btn btn-primary w-full gap-2 mt-2">
                 {loading ? <span className="loading loading-spinner loading-sm"></span> : <UploadIcon size={18} />}
-                {loading ? 'Upload en cours...' : 'Envoyer le document'}
+                {loading ? `Envoi en cours... ${progress > 0 ? progress + '%' : ''}` : 'Envoyer le document'}
               </button>
+
+              {/* Barre de progression */}
+              {loading && progress > 0 && (
+                <div className="w-full">
+                  <div className="flex justify-between text-xs text-base-content/50 mb-1">
+                    <span>Envoi du fichier vers le serveur...</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="w-full bg-base-200 rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  {progress === 100 && (
+                    <p className="text-xs text-base-content/50 mt-1 text-center">
+                      Traitement en cours... Veuillez patienter.
+                    </p>
+                  )}
+                </div>
+              )}
             </form>
           </div>
         </div>
