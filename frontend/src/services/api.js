@@ -136,12 +136,16 @@ export const adminApi = {
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
   getSettings: () => api.get('/admin/settings'),
+  
   updateSettings: (data) => api.patch('/admin/settings', data),
+  // broadcast: (data) => api.post('/admin/broadcast', data),
   broadcast: (data) => api.post('/admin/broadcast', data),
   getSubscriptions: () => api.get('/admin/subscriptions'),
+   getBroadcastStats: () => api.get('/admin/broadcast/stats'),
   createSubscription: (data) => api.post('/admin/subscriptions', data),
   revokeSubscription: (userId) => api.delete(`/admin/subscriptions/${userId}`),
   sendExpiryReminder: (userId) => api.post(`/admin/subscriptions/${userId}/remind`),
+  cleanupOrphans: () => api.post('/admin/cleanup-orphans'),
 }
 
 // ─── Forum ────────────────────────────────────────────────────────────────────
