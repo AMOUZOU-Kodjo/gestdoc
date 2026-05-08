@@ -1,0 +1,67 @@
+/* src/styles/scientific.css */
+
+/* Styles pour les formules mathématiques */
+.math-display {
+  text-align: center;
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.math-inline {
+  display: inline-block;
+  margin: 0 0.2em;
+}
+
+/* Style pour les blocs de code scientifiques */
+pre code.language-chart {
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+/* Styles pour l'éditeur */
+.CodeMirror {
+  min-height: 300px;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 14px;
+}
+
+.EasyMDEContainer .editor-toolbar {
+  border-radius: 8px 8px 0 0;
+  background: var(--base-200);
+}
+
+.EasyMDEContainer .CodeMirror {
+  border-radius: 0 0 8px 8px;
+  background: var(--base-100);
+  color: var(--base-content);
+}
+
+/* Styles pour les tableaux scientifiques */
+table.scientifique {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+table.scientifique th,
+table.scientifique td {
+  border: 1px solid var(--base-300);
+  padding: 0.5rem;
+  text-align: center;
+}
+
+table.scientifique th {
+  background: var(--base-200);
+  font-weight: bold;
+}
+
+/* Styles pour les graphiques intégrés */
+.scientific-chart {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

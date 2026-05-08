@@ -113,6 +113,8 @@ export const documentsApi = {
       : undefined,
   }),
   myUploads: () => api.get('/documents/my/uploads'),
+  getRecommended: (classe, matiere) => 
+    api.get(`/documents/recommended`, { params: { classe, matiere, limit: 4 } }),
 }
 // ─── Users ────────────────────────────────────────────────────────────────────
 export const usersApi = {
@@ -139,6 +141,7 @@ export const adminApi = {
   getSubscriptions: () => api.get('/admin/subscriptions'),
   createSubscription: (data) => api.post('/admin/subscriptions', data),
   revokeSubscription: (userId) => api.delete(`/admin/subscriptions/${userId}`),
+  sendExpiryReminder: (userId) => api.post(`/admin/subscriptions/${userId}/remind`),
 }
 
 // ─── Forum ────────────────────────────────────────────────────────────────────
