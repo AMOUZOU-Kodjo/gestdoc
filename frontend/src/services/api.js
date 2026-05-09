@@ -30,6 +30,7 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
+// Intercepteur pour gérer le rafraîchissement du token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -82,6 +83,19 @@ api.interceptors.response.use(
   }
 )
 
+// ─── Services pour les paiements mobiles ─────────────────────────────────────
+export const paymentService = {
+  processMobilePayment: async (paymentData) => {
+    const response = await api.post('/payments/mobile', paymentData)
+    return response.data
+  },
+  
+  verifyPayment: async (transactionId) => {
+    const response = await api.get(`/payments/verify/${transactionId}`)
+    return response.data
+  }
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   register: (data) => api.post('/auth/register', data),
@@ -91,23 +105,13 @@ export const authApi = {
 }
 
 // ─── Documents ────────────────────────────────────────────────────────────────
-// export const documentsApi = {
-//   getAll: (params) => api.get('/documents', { params }),
-//   getById: (id) => api.get(`/documents/${id}`),
-//   getDownloadUrl: (id) => api.get(`/documents/${id}/download`),
-//   upload: (formData) => api.post('/documents/upload', formData, {
-//     headers: { 'Content-Type': 'multipart/form-data' },
-//   }),
-//   myUploads: () => api.get('/documents/my/uploads'),
-// }
-
 export const documentsApi = {
-  getAll:         (params) => api.get('/documents', { params }),
-  getById:        (id) => api.get(`/documents/${id}`),
+  getAll: (params) => api.get('/documents', { params }),
+  getById: (id) => api.get(`/documents/${id}`),
   getDownloadUrl: (id) => api.get(`/documents/${id}/download`),
   upload: (formData, onProgress) => api.post('/documents/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 120000, // 2 minutes — fichiers peuvent être gros
+    timeout: 120000,
     onUploadProgress: onProgress
       ? (e) => onProgress(Math.round((e.loaded * 100) / (e.total || 1)))
       : undefined,
@@ -116,13 +120,16 @@ export const documentsApi = {
   getRecommended: (classe, matiere) => 
     api.get(`/documents/recommended`, { params: { classe, matiere, limit: 4 } }),
 }
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 export const usersApi = {
   me: () => api.get('/users/me'),
   updateProfile: (data) => api.patch('/users/me', data),
   changePassword: (data) => api.patch('/users/me/password', data),
   myDownloads: () => api.get('/users/me/downloads'),
-  uploadAvatar: (formData) => api.post('/users/me/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadAvatar: (formData) => api.post('/users/me/avatar', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
   deleteAvatar: () => api.delete('/users/me/avatar'),
   quota: () => api.get('/users/me/quota'),
 }
@@ -136,12 +143,10 @@ export const adminApi = {
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
   getSettings: () => api.get('/admin/settings'),
-  
   updateSettings: (data) => api.patch('/admin/settings', data),
-  // broadcast: (data) => api.post('/admin/broadcast', data),
   broadcast: (data) => api.post('/admin/broadcast', data),
   getSubscriptions: () => api.get('/admin/subscriptions'),
-   getBroadcastStats: () => api.get('/admin/broadcast/stats'),
+  getBroadcastStats: () => api.get('/admin/broadcast/stats'),
   createSubscription: (data) => api.post('/admin/subscriptions', data),
   revokeSubscription: (userId) => api.delete(`/admin/subscriptions/${userId}`),
   sendExpiryReminder: (userId) => api.post(`/admin/subscriptions/${userId}/remind`),
@@ -150,12 +155,12 @@ export const adminApi = {
 
 // ─── Forum ────────────────────────────────────────────────────────────────────
 export const forumApi = {
-  getPosts:    (params) => api.get('/forum', { params }),
-  getPost:     (id) => api.get(`/forum/${id}`),
-  createPost:  (data) => api.post('/forum', data),
-  deletePost:  (id) => api.delete(`/forum/${id}`),
-  likePost:    (id) => api.post(`/forum/${id}/like`),
-  pinPost:     (id, pinned) => api.patch(`/forum/${id}/pin`, { pinned }),
+  getPosts: (params) => api.get('/forum', { params }),
+  getPost: (id) => api.get(`/forum/${id}`),
+  createPost: (data) => api.post('/forum', data),
+  deletePost: (id) => api.delete(`/forum/${id}`),
+  likePost: (id) => api.post(`/forum/${id}/like`),
+  pinPost: (id, pinned) => api.patch(`/forum/${id}/pin`, { pinned }),
   createReply: (postId, data) => api.post(`/forum/${postId}/replies`, data),
   deleteReply: (replyId) => api.delete(`/forum/replies/${replyId}`),
 }

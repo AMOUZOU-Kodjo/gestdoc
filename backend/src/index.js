@@ -11,6 +11,7 @@ const documentRoutes = require('./routes/documents.routes');
 const userRoutes = require('./routes/users.routes');
 const adminRoutes = require('./routes/admin.routes');
 const forumRoutes = require('./routes/forum.routes');
+const paymentRoutes = require('./routes/payments'); // ✅ CORRECTION : './routes/payments' au lieu de './scr/routes/payments'
 
 const app = express();
 const prisma = new PrismaClient();
@@ -79,6 +80,14 @@ app.use((req, res, next) => {
   next()
 })
 
+app.set('trust proxy', function(ip) {
+  // Trust les IPs de Render (à adapter selon votre cas)
+  if (ip === '169.254.0.1' || ip.startsWith('10.') || ip.startsWith('172.')) {
+    return 1; // trust first proxy
+  }
+  return 0; // do not trust
+});
+
 // ─── Health Check ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache')
@@ -91,6 +100,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/forum', forumRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
