@@ -5,35 +5,13 @@ const { authMiddleware } = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
 const { cloudinary } = require("../middlewares/upload.middleware");
 const { z } = require("zod");
-const nodemailer = require("nodemailer");
+const { sendBroadcastEmail, verifyEmailConfig } = require("../services/email.service");
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ─── Configuration du transporteur Nodemailer ─────────────────────────────────
-// DÉCOMMENTEZ ET CONFIGUREZ CECI
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === "true", // false pour 587, true pour 465
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // Pour le développement uniquement
-  },
-});
-
-// Vérifier la connexion SMTP au démarrage
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Erreur de connexion SMTP:", error.message);
-    console.log("⚠️ Le service d'email ne fonctionnera pas correctement");
-  } else {
-    console.log("✅ Serveur SMTP prêt à envoyer des emails");
-  }
-});
+// Vérifier la config email au démarrage
+verifyEmailConfig();
 
 // Toutes les routes admin nécessitent auth + ADMIN sauf GET /settings
 router.use((req, res, next) => {
@@ -44,26 +22,110 @@ router.use((req, res, next) => {
 // ─── Stats ───────────────────────────────────────────────────────────────────
 router.get("/stats", async (req, res) => {
   try {
-    const [totalUsers, totalDocuments, totalDownloads, pendingDocuments, recentUploads, recentUsers] = await Promise.all([
-      prisma.user.count({ where: { role: "USER" } }),
-      prisma.document.count({ where: { status: "APPROVED" } }),
+    const range = req.query.range || 'week';
+    const rangeDays = range === 'week' ? 7 : range === 'month' ? 30 : 365;
+    const now = new Date();
+    const startDate = new Date(now - rangeDays * 24 * 60 * 60 * 1000);
+    const prevStart = new Date(startDate - rangeDays * 24 * 60 * 60 * 1000);
+
+    const [
+      totalUsers, totalDocuments, totalDownloads, pendingDocuments,
+      recentUploads, recentUsers, topDocument, activeUsers,
+      currentDownloads, prevDownloads,
+      currentUploads, prevUploads,
+      currentPending, prevPending,
+      currentUsers, prevUsers,
+    ] = await Promise.all([
+      prisma.user.count({ where: { role: 'USER' } }),
+      prisma.document.count({ where: { status: 'APPROVED' } }),
       prisma.download.count(),
-      prisma.document.count({ where: { status: "PENDING" } }),
+      prisma.document.count({ where: { status: 'PENDING' } }),
       prisma.document.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
+        orderBy: { createdAt: 'desc' }, take: 5,
         select: { id: true, titre: true, status: true, createdAt: true, uploader: { select: { nom: true, prenom: true } } },
       }),
       prisma.user.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
+        orderBy: { createdAt: 'desc' }, take: 5,
         select: { id: true, nom: true, prenom: true, email: true, createdAt: true },
       }),
+      prisma.document.findFirst({
+        where: { status: 'APPROVED' },
+        orderBy: { downloadCount: 'desc' },
+        select: { id: true, titre: true, downloadCount: true },
+      }),
+      prisma.user.count({
+        where: {
+          role: 'USER',
+          OR: [
+            { downloads: { some: { downloadedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } } },
+            { documents: { some: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } } },
+          ],
+        },
+      }),
+      prisma.download.count({ where: { downloadedAt: { gte: startDate } } }),
+      prisma.download.count({ where: { downloadedAt: { gte: prevStart, lt: startDate } } }),
+      prisma.document.count({ where: { status: 'APPROVED', createdAt: { gte: startDate } } }),
+      prisma.document.count({ where: { status: 'APPROVED', createdAt: { gte: prevStart, lt: startDate } } }),
+      prisma.document.count({ where: { status: 'PENDING', createdAt: { gte: startDate } } }),
+      prisma.document.count({ where: { status: 'PENDING', createdAt: { gte: prevStart, lt: startDate } } }),
+      prisma.user.count({ where: { role: 'USER', createdAt: { gte: startDate } } }),
+      prisma.user.count({ where: { role: 'USER', createdAt: { gte: prevStart, lt: startDate } } }),
     ]);
-    res.json({ totalUsers, totalDocuments, totalDownloads, pendingDocuments, recentUploads, recentUsers });
+
+    // Activity data: group downloads and uploads by day
+    const rawDownloads = await prisma.$queryRaw`
+      SELECT DATE(downloaded_at) as day, COUNT(*)::int as count
+      FROM downloads
+      WHERE downloaded_at >= ${startDate}
+      GROUP BY DATE(downloaded_at)
+      ORDER BY day
+    `;
+    const rawUploads = await prisma.$queryRaw`
+      SELECT DATE(created_at) as day, COUNT(*)::int as count
+      FROM documents
+      WHERE status = 'APPROVED' AND created_at >= ${startDate}
+      GROUP BY DATE(created_at)
+      ORDER BY day
+    `;
+
+    const downloadMap = {};
+    const uploadMap = {};
+    for (const r of rawDownloads) downloadMap[r.day.toISOString().slice(0, 10)] = r.count;
+    for (const r of rawUploads) uploadMap[r.day.toISOString().slice(0, 10)] = r.count;
+
+    const labels = [];
+    const downloadsArr = [];
+    const uploadsArr = [];
+    for (let i = 0; i < rangeDays; i++) {
+      const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      labels.push(d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }));
+      downloadsArr.push(downloadMap[key] || 0);
+      uploadsArr.push(uploadMap[key] || 0);
+    }
+
+    const calcTrend = (cur, prev) => {
+      if (prev === 0) return cur > 0 ? '+100%' : '0%';
+      const chg = Math.round(((cur - prev) / prev) * 100);
+      return `${chg >= 0 ? '+' : ''}${chg}%`;
+    };
+
+    res.json({
+      totalUsers, totalDocuments, totalDownloads, pendingDocuments,
+      recentUploads, recentUsers,
+      approvedDocuments: totalDocuments,
+      averageDownloads: totalDocuments > 0 ? Math.round((totalDownloads / totalDocuments) * 10) / 10 : 0,
+      topDocument: topDocument || null,
+      activeUsers,
+      activityData: { labels, downloads: downloadsArr, uploads: uploadsArr },
+      userTrend: calcTrend(currentUsers, prevUsers),
+      docTrend: calcTrend(currentUploads, prevUploads),
+      downloadTrend: calcTrend(currentDownloads, prevDownloads),
+      pendingTrend: calcTrend(currentPending, prevPending),
+    });
   } catch (error) {
-    console.error("Admin stats error:", error);
-    res.status(500).json({ error: "Erreur serveur." });
+    console.error('Admin stats error:', error);
+    res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
 
@@ -308,53 +370,14 @@ router.post("/broadcast", async (req, res) => {
       total: users.length,
     });
 
-    // Envoi des emails (maintenant transporter est défini !)
+    // Envoi des emails via le service unifié (Resend en prod, Nodemailer en local)
     for (const user of users) {
       try {
-        await transporter.sendMail({
-          from: `"GestDoc" <${process.env.EMAIL_USER}>`,
+        await sendBroadcastEmail({
           to: user.email,
-          subject: sujet,
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="UTF-8">
-              <style>
-                body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f4f4; }
-                .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
-                .header h1 { margin: 0; color: white; font-size: 24px; }
-                .content { padding: 40px 30px; line-height: 1.6; color: #333; }
-                .message { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px 20px; margin: 20px 0; border-radius: 4px; }
-                .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>📚 GestDoc</h1>
-                  <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Plateforme documentaire</p>
-                </div>
-                <div class="content">
-                  <p>Bonjour <strong>${user.prenom || ""} ${user.nom || ""}</strong>,</p>
-                  <div class="message">
-                    ${message.replace(/\n/g, "<br>")}
-                  </div>
-                  <p style="margin-top: 25px;">
-                    Cordialement,<br>
-                    <strong>L'équipe GestDoc</strong>
-                  </p>
-                </div>
-                <div class="footer">
-                  <p>Cet email a été envoyé automatiquement par GestDoc.</p>
-                  <p>© ${new Date().getFullYear()} GestDoc - Tous droits réservés</p>
-                </div>
-              </div>
-            </body>
-            </html>
-          `,
-          text: `GestDoc\n\nBonjour ${user.prenom || ""} ${user.nom || ""},\n\n${message}\n\nCordialement,\nL'équipe GestDoc`,
+          prenom: user.prenom || user.nom || '',
+          sujet,
+          message,
         });
         successCount++;
         console.log(`✅ Email envoyé à ${user.email} (${successCount + failCount}/${users.length})`);
@@ -486,67 +509,54 @@ router.post("/subscriptions/:userId/remind", async (req, res) => {
       return res.status(400).json({ error: `L'abonnement expire dans ${daysUntilExpiry} jours, pas encore critique` });
     }
     
-    // Envoyer l'email de rappel
-    const transporter = require("nodemailer").createTransport({
-      host: process.env.EMAIL_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: process.env.EMAIL_SECURE === "true",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-    
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f4f4; }
-          .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 30px; text-align: center; }
-          .header h1 { margin: 0; color: white; font-size: 24px; }
-          .content { padding: 40px 30px; line-height: 1.6; color: #333; }
-          .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 4px; }
-          .button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>⚠️ Votre abonnement expire bientôt</h1>
-          </div>
-          <div class="content">
-            <p>Bonjour <strong>${subscription.user.prenom} ${subscription.user.nom}</strong>,</p>
-            <div class="warning-box">
-              <p style="margin: 0; font-weight: bold;">Votre abonnement expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''} !</p>
-              <p style="margin: 10px 0 0 0; font-size: 14px;">Date d'expiration : ${new Date(subscription.fin).toLocaleDateString('fr-FR')}</p>
-            </div>
-            <p>Pour continuer à profiter de tous les avantages de GestDoc, pensez à renouveler votre abonnement dès maintenant.</p>
-            <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/abonnement" class="button">✨ Renouveler mon abonnement</a>
-            </div>
-            <p style="margin-top: 25px;">
-              Cordialement,<br>
-              <strong>L'équipe GestDoc</strong>
-            </p>
-          </div>
-          <div class="footer">
-            <p>Cet email a été envoyé automatiquement par GestDoc.</p>
-            <p>© ${new Date().getFullYear()} GestDoc - Plateforme documentaire</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    await transporter.sendMail({
-      from: `"GestDoc" <${process.env.EMAIL_USER}>`,
+    const { sendEmail } = require("../services/email.service");
+    await sendEmail({
       to: subscription.user.email,
       subject: `⚠️ Votre abonnement GestDoc expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''}`,
-      html,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f4f4; }
+            .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 30px; text-align: center; }
+            .header h1 { margin: 0; color: white; font-size: 24px; }
+            .content { padding: 40px 30px; line-height: 1.6; color: #333; }
+            .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 4px; }
+            .button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>⚠️ Votre abonnement expire bientôt</h1>
+            </div>
+            <div class="content">
+              <p>Bonjour <strong>${subscription.user.prenom} ${subscription.user.nom}</strong>,</p>
+              <div class="warning-box">
+                <p style="margin: 0; font-weight: bold;">Votre abonnement expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''} !</p>
+                <p style="margin: 10px 0 0 0; font-size: 14px;">Date d'expiration : ${new Date(subscription.fin).toLocaleDateString('fr-FR')}</p>
+              </div>
+              <p>Pour continuer à profiter de tous les avantages de GestDoc, pensez à renouveler votre abonnement dès maintenant.</p>
+              <div style="text-align: center;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/abonnement" class="button">✨ Renouveler mon abonnement</a>
+              </div>
+              <p style="margin-top: 25px;">
+                Cordialement,<br>
+                <strong>L'équipe GestDoc</strong>
+              </p>
+            </div>
+            <div class="footer">
+              <p>Cet email a été envoyé automatiquement par GestDoc.</p>
+              <p>© ${new Date().getFullYear()} GestDoc - Plateforme documentaire</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
     });
     
     console.log(`✅ Rappel d'expiration envoyé à ${subscription.user.email}`);
@@ -555,6 +565,28 @@ router.post("/subscriptions/:userId/remind", async (req, res) => {
   } catch (error) {
     console.error("Reminder error:", error);
     res.status(500).json({ error: "Erreur lors de l'envoi du rappel" });
+  }
+});
+
+// ─── Nettoyage des fichiers orphelins ──────────────────────────────────────────
+router.post("/cleanup-orphans", async (req, res) => {
+  try {
+    const [deletedDownloads, deletedDocuments] = await Promise.all([
+      prisma.download.deleteMany({
+        where: { document: null },
+      }),
+      prisma.document.deleteMany({
+        where: { fileUrl: null },
+      }),
+    ]);
+    console.log(`🧹 Nettoyage: ${deletedDownloads.count} téléchargements orphelins, ${deletedDocuments.count} documents orphelins supprimés`);
+    res.json({
+      success: true,
+      message: `${deletedDownloads.count} téléchargements et ${deletedDocuments.count} documents orphelins nettoyés`,
+    });
+  } catch (error) {
+    console.error("Cleanup orphans error:", error);
+    res.status(500).json({ error: "Erreur lors du nettoyage." });
   }
 });
 

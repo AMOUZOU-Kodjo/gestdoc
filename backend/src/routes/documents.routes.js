@@ -193,11 +193,10 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
       prisma.document.update({ where: { id }, data: { downloadCount: { increment: 1 } } }),
     ]);
 
-    // ── URL de téléchargement — utiliser l'URL directe Cloudinary ────────────
-    // L'URL directe fonctionne toujours pour PDF et DOCX.
-    // On l'ouvre dans un nouvel onglet → le navigateur gère l'affichage/téléchargement.
-    const downloadUrl = document.fileUrl;
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── URL avec fl_attachment + watermark GestDoc ─────────────────────────
+    const { getDownloadUrl } = require('../services/watermark.service');
+    const downloadUrl = getDownloadUrl(document.fileUrl, document.resourceType);
+    // ────────────────────────────────────────────────────────────────────────
 
     res.json({
       downloadUrl,
@@ -208,6 +207,49 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ error: 'Erreur lors du téléchargement.' });
+  }
+});
+
+// GET /api/documents/:id/view — Auth requis (consultation sans quota)
+router.get('/:id/view', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return res.status(400).json({ error: 'ID invalide.' });
+    }
+
+    const document = await prisma.document.findFirst({
+      where: { id, status: 'APPROVED' },
+      select: {
+        id: true, titre: true, fileType: true, resourceType: true,
+        fileUrl: true, niveau: true, classe: true, matiere: true,
+        annee: true, description: true,
+      },
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document non trouvé.' });
+    }
+
+    // Base URL pour le rendu page par page (images avec watermark)
+    const { getViewerBaseUrl } = require('../services/watermark.service');
+    const viewerBaseUrl = getViewerBaseUrl(document.fileUrl, document.resourceType);
+
+    res.json({
+      id: document.id,
+      titre: document.titre,
+      fileType: document.fileType,
+      resourceType: document.resourceType,
+      viewerBaseUrl,
+      niveau: document.niveau,
+      classe: document.classe,
+      matiere: document.matiere,
+      annee: document.annee,
+      description: document.description,
+    });
+  } catch (error) {
+    console.error('View error:', error);
+    res.status(500).json({ error: 'Erreur lors de la préparation du visionnage.' });
   }
 });
 

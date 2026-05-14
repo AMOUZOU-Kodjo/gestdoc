@@ -1,195 +1,163 @@
-// src/routes/payments.js
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const jwt = require('jsonwebtoken');
+const { authMiddleware } = require('../middlewares/auth.middleware');
+const { sendSubscriptionEmail } = require('../services/email.service');
 
 const prisma = new PrismaClient();
 
-// Middleware d'authentification
-const auth = async (req, res, next) => {
-  try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      throw new Error();
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ 
-      success: false, 
-      message: 'Veuillez vous authentifier',
-      code: 'UNAUTHORIZED'
-    });
-  }
+const OPERATEURS = {
+  tmoney: { nom: 'T-Money', marchand: '70855901' },
+  flooz:  { nom: 'Flooz',   marchand: '99163562' },
 };
 
-// Fonction pour appeler l'API T-Money (simulée)
-async function callTMoneyAPI(data) {
-  console.log('📱 Traitement paiement T-Money:', {
-    phone: data.phoneNumber,
-    amount: data.amount,
-    reference: data.reference
-  });
-  
-  // Simulation pour les tests
-  // ⚠️ À remplacer par la vraie API T-Money en production
-  return {
-    success: true,
-    transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    message: "Paiement simulé avec succès"
-  };
+const PLANS = {
+  weekly:   { duree: 7,  prix: 500 },
+  monthly:  { duree: 30, prix: 1500 },
+  quarterly: { duree: 90, prix: 4000 },
+};
+
+function getPlan(planId) {
+  return PLANS[planId] || null;
 }
 
-// Route pour traiter le paiement mobile
-router.post('/mobile', auth, async (req, res) => {
-  const { planId, planCode, phoneNumber, pinCode, amount } = req.body;
+// Validation du format de référence selon l'opérateur
+function validateReference(operator, ref) {
+  if (!ref || ref.length < 8) {
+    return 'La référence doit contenir au moins 8 caractères';
+  }
+  if (!/^[A-Za-z0-9]{6,30}$/.test(ref)) {
+    return 'Format de référence invalide (uniquement lettres et chiffres)';
+  }
+  if (operator === 'tmoney') {
+    const tmoneyPattern = /^(TXV|TX|TV|TMO)[A-Za-z0-9]{5,27}$/i;
+    const digitPattern = /^\d{10,20}$/;
+    if (!tmoneyPattern.test(ref) && !digitPattern.test(ref)) {
+      return 'Format T-Money invalide. La référence commence par TXV, TX, TV ou TMO, ou contient 10 à 20 chiffres';
+    }
+  }
+  if (operator === 'flooz') {
+    const floozPattern = /^(MO|MOMO|FLZ)[A-Za-z0-9]{5,27}$/i;
+    const digitPattern = /^\d{10,20}$/;
+    if (!floozPattern.test(ref) && !digitPattern.test(ref)) {
+      return 'Format Flooz invalide. La référence commence par MO, MOMO ou FLZ, ou contient 10 à 20 chiffres';
+    }
+  }
+  return null; // valide
+}
+
+router.post('/mobile', authMiddleware, async (req, res) => {
+  const { operator, planId, planCode, phoneNumber, transactionRef, amount, email } = req.body;
   const userId = req.user.id;
-  
+
   try {
-    // Validation des données
+    if (!operator || !OPERATEURS[operator]) {
+      return res.status(400).json({ success: false, message: 'Opérateur invalide' });
+    }
+
+    const plan = getPlan(planId);
+    if (!plan) {
+      return res.status(400).json({ success: false, message: 'Plan invalide' });
+    }
+
     if (!phoneNumber || phoneNumber.length < 8) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: 'Numéro de téléphone invalide' });
+    }
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email requis pour la confirmation' });
+    }
+
+    const refError = validateReference(operator, transactionRef);
+    if (refError) {
+      return res.status(400).json({ success: false, message: refError });
+    }
+
+    // Anti-reuse : vérifier que la référence n'a pas déjà été utilisée
+    const existing = await prisma.subscription.findFirst({
+      where: { reference: transactionRef },
+    });
+    if (existing) {
+      return res.status(409).json({
         success: false,
-        message: "Numéro de téléphone invalide"
+        message: 'Cette référence de transaction a déjà été utilisée',
       });
     }
 
-    if (!pinCode || pinCode.length !== 4) {
-      return res.status(400).json({
-        success: false,
-        message: "Code PIN invalide (4 chiffres requis)"
+    console.log(`Paiement ${OPERATEURS[operator].nom}:`, {
+      userId, phone: `228${phoneNumber}`, montant: plan.prix, ref: transactionRef,
+    });
+
+    // TODO: Intégration API Mobile Money quand credentials disponibles
+    // - T-Money API: documentation Moov Africa - *145#
+    // - Flooz API: documentation Togocom - *155#
+    // Le code ci-dessous active sur validation du format + unicité de la ref
+
+    const now = new Date();
+    const fin = new Date(now.getTime() + plan.duree * 24 * 60 * 60 * 1000);
+
+    const subscription = await prisma.subscription.upsert({
+      where: { userId },
+      update: { actif: true, debut: now, fin, montant: plan.prix, reference: transactionRef },
+      create: { userId, actif: true, debut: now, fin, montant: plan.prix, reference: transactionRef },
+    });
+
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { nom: true, prenom: true, email: true } });
+      await sendSubscriptionEmail({
+        to: email || user.email,
+        nom: user.prenom,
+        plan: planId,
+        duree: plan.duree,
+        montant: plan.prix,
+        fin,
+        reference: transactionRef,
       });
+    } catch (emailErr) {
+      console.error('Erreur email confirmation:', emailErr.message);
     }
-
-    // Appel à l'API T-Money
-    const paymentResponse = await callTMoneyAPI({
-      phoneNumber: `228${phoneNumber}`,
-      pinCode: pinCode,
-      amount: amount,
-      reference: `${planCode}_${userId}_${Date.now()}`
-    });
-    
-    if (paymentResponse.success) {
-      // Calcul des dates d'abonnement
-      const duration = getPlanDuration(planId);
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + duration);
-
-      // Enregistrer l'abonnement dans la base de données
-      const subscription = await prisma.subscription.create({
-        data: {
-          userId: userId,
-          planId: planId,
-          planCode: planCode,
-          startDate: startDate,
-          endDate: endDate,
-          transactionId: paymentResponse.transactionId,
-          amount: amount,
-          status: 'active',
-          paymentMethod: 'T-MONEY',
-          paymentPhone: phoneNumber
-        }
-      });
-
-      // Mettre à jour l'utilisateur avec les téléchargements illimités
-      await prisma.user.update({
-        where: { id: userId },
-        data: { 
-          hasUnlimitedDownloads: true,
-          subscriptionEndDate: endDate
-        }
-      });
-
-      res.json({ 
-        success: true, 
-        transactionId: paymentResponse.transactionId,
-        subscription: subscription,
-        message: "Abonnement activé avec succès"
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        message: paymentResponse.error || "Paiement refusé" 
-      });
-    }
-  } catch (error) {
-    console.error('❌ Erreur paiement:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Erreur lors du traitement du paiement. Veuillez réessayer." 
-    });
-  }
-});
-
-// Fonction helper pour obtenir la durée d'un plan
-function getPlanDuration(planId) {
-  const durations = {
-    'weekly': 7,
-    'monthly': 30,
-    'quarterly': 90,
-    '1 Semaine': 7,
-    '1 Mois': 30,
-    '3 Mois': 90
-  };
-  return durations[planId] || 0;
-}
-
-// Route pour vérifier le statut d'un paiement
-router.get('/verify/:transactionId', auth, async (req, res) => {
-  try {
-    const { transactionId } = req.params;
-    
-    const subscription = await prisma.subscription.findFirst({
-      where: { 
-        transactionId: transactionId,
-        userId: req.user.id
-      }
-    });
-
-    if (!subscription) {
-      return res.status(404).json({
-        success: false,
-        message: "Transaction non trouvée"
-      });
-    }
-
-    res.json({ 
-      success: true, 
-      status: subscription.status,
-      subscription: subscription
-    });
-  } catch (error) {
-    console.error('❌ Erreur vérification:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Erreur lors de la vérification" 
-    });
-  }
-});
-
-// Route pour obtenir l'historique des paiements de l'utilisateur
-router.get('/history', auth, async (req, res) => {
-  try {
-    const subscriptions = await prisma.subscription.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' }
-    });
 
     res.json({
       success: true,
-      subscriptions: subscriptions
+      operator,
+      transactionRef,
+      subscription: {
+        id: subscription.id,
+        actif: true,
+        debut: subscription.debut,
+        fin: subscription.fin,
+        montant: plan.prix,
+      },
+      message: `Abonnement activé avec succès via ${OPERATEURS[operator].nom}`,
     });
   } catch (error) {
-    console.error('❌ Erreur historique:', error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la récupération de l'historique"
+    console.error('Erreur paiement:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors du traitement du paiement.' });
+  }
+});
+
+router.get('/verify/:transactionRef', authMiddleware, async (req, res) => {
+  try {
+    const subscription = await prisma.subscription.findFirst({
+      where: { reference: req.params.transactionRef, userId: req.user.id },
     });
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Transaction non trouvée' });
+    }
+    res.json({ success: true, status: subscription.actif ? 'active' : 'inactive', subscription });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur lors de la vérification' });
+  }
+});
+
+router.get('/history', authMiddleware, async (req, res) => {
+  try {
+    const subscriptions = await prisma.subscription.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, subscriptions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur lors de la récupération de l\'historique' });
   }
 });
 
