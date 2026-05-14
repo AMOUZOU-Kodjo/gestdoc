@@ -1,7 +1,7 @@
-const WATERMARK_TEXT = 'GestDoc';
+const WATERMARK_TEXT = 'GestDoc-TG';
 const FONT = 'Arial_24_bold';
 const COLOR = '999999';
-const OPACITY = 35;
+const OPACITY = 45;
 const PADDING = 15;
 
 function overlayTransform() {

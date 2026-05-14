@@ -88,10 +88,15 @@ app.set('trust proxy', function(ip) {
   return 0; // do not trust
 });
 
-// ─── Health Check ────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => {
+// ─── Health Check (ping base pour éviter le sleep Neon) ──────────────────────
+app.get('/health', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache')
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() })
+  } catch {
+    res.status(503).json({ status: 'error', db: 'disconnected', timestamp: new Date().toISOString() })
+  }
 });
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
