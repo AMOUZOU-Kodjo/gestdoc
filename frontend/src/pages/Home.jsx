@@ -407,9 +407,9 @@ export default function Home() {
                         </div>
 
                         <div className="flex gap-3 mt-4">
-                          <Link to={`/documents/${doc.id}`} className="btn btn-primary btn-sm flex-1 gap-2">
+                          <a href={`/viewer/${doc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm flex-1 gap-2">
                             <Eye size={16} /> Voir le document
-                          </Link>
+                          </a>
                         </div>
                       </div>
                     </div>

@@ -134,20 +134,18 @@ export default function Profile() {
               </div>
               
               {/* Stats rapides */}
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.documentsUploaded}</div>
-                  <div className="text-[10px] text-base-content/50">Uploads</div>
+              <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                <div className="text-center px-2 md:px-4 border-r border-base-300 last:border-0">
+                  <div className="text-xl md:text-2xl font-bold text-primary">{stats.documentsUploaded}</div>
+                  <div className="text-[9px] md:text-[10px] text-base-content/50 whitespace-nowrap">Uploads</div>
                 </div>
-                <div className="divider divider-horizontal m-0"></div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-success">{stats.totalDownloads}</div>
-                  <div className="text-[10px] text-base-content/50">Downloads</div>
+                <div className="text-center px-2 md:px-4 border-r border-base-300 last:border-0">
+                  <div className="text-xl md:text-2xl font-bold text-success">{stats.totalDownloads}</div>
+                  <div className="text-[9px] md:text-[10px] text-base-content/50 whitespace-nowrap">Downloads</div>
                 </div>
-                <div className="divider divider-horizontal m-0"></div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-warning">{stats.pendingUploads}</div>
-                  <div className="text-[10px] text-base-content/50">En attente</div>
+                <div className="text-center px-2 md:px-4">
+                  <div className="text-xl md:text-2xl font-bold text-warning">{stats.pendingUploads}</div>
+                  <div className="text-[9px] md:text-[10px] text-base-content/50 whitespace-nowrap">En attente</div>
                 </div>
               </div>
             </div>
@@ -165,11 +163,11 @@ export default function Profile() {
         </div>
 
         {/* Tabs améliorés */}
-        <div className="tabs tabs-boxed bg-base-100 shadow-sm p-1">
+        <div className="tabs tabs-boxed bg-base-100 shadow-sm p-1 overflow-x-auto flex-nowrap gap-0">
           {TABS.map(t => (
             <button 
               key={t.id} 
-              className={`tab gap-1.5 flex-1 text-xs sm:text-sm transition-all ${tab === t.id ? 'tab-active' : ''}`} 
+              className={`tab gap-1.5 flex-shrink-0 text-xs sm:text-sm transition-all ${tab === t.id ? 'tab-active' : ''}`} 
               onClick={() => setTab(t.id)}
             >
               {t.icon}
@@ -307,8 +305,8 @@ export default function Profile() {
                   {uploads.map(doc => {
                     const statusConfig = STATUS_LABELS[doc.status]
                     return (
-                      <div key={doc.id} className="flex items-center gap-3 p-3 bg-base-200 rounded-xl hover:shadow-md transition-all group">
-                        <div className={`p-2 rounded-lg ${
+                      <div key={doc.id} className="flex items-start gap-3 p-3 bg-base-200 rounded-xl hover:shadow-md transition-all group">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${
                           doc.status === 'APPROVED' ? 'bg-success/20' :
                           doc.status === 'REJECTED' ? 'bg-error/20' : 'bg-warning/20'
                         }`}>
@@ -327,11 +325,11 @@ export default function Profile() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           <span className={`badge badge-sm ${statusConfig?.class}`}>
                             {statusConfig?.label}
                           </span>
-                          <span className="text-[10px] text-base-content/40">
+                          <span className="text-[10px] text-base-content/40 whitespace-nowrap">
                             {new Date(doc.createdAt).toLocaleDateString('fr-FR')}
                           </span>
                         </div>
@@ -373,8 +371,8 @@ export default function Profile() {
               ) : (
                 <div className="space-y-2">
                   {downloads.map(dl => (
-                    <div key={dl.id} className="flex items-center gap-3 p-3 bg-base-200 rounded-xl hover:shadow-md transition-all group">
-                      <div className="p-2 rounded-lg bg-success/20">
+                    <div key={dl.id} className="flex items-start gap-3 p-3 bg-base-200 rounded-xl hover:shadow-md transition-all group">
+                      <div className="p-2 rounded-lg bg-success/20 flex-shrink-0">
                         <Download size={18} className="text-success" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -387,8 +385,8 @@ export default function Profile() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-base-content/40 flex items-center gap-1">
+                      <div className="flex-shrink-0">
+                        <span className="text-[10px] text-base-content/40 flex items-center gap-1 whitespace-nowrap">
                           <Calendar size={10} />
                           {new Date(dl.downloadedAt).toLocaleDateString('fr-FR')}
                         </span>

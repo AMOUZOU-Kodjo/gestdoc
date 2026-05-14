@@ -14,6 +14,7 @@ import Register from './pages/Register'
 
 // Pages chargées en lazy (moins critiques)
 const DocumentDetail   = lazy(() => import('./pages/DocumentDetail'))
+const DocumentViewer   = lazy(() => import('./pages/DocumentViewer'))
 const Upload           = lazy(() => import('./pages/Upload'))
 const Profile          = lazy(() => import('./pages/Profile'))
 const Abonnement       = lazy(() => import('./pages/Abonnement'))
@@ -68,6 +69,7 @@ function AppRoutes() {
             <Route path="/login"         element={<Login />} />
             <Route path="/register"      element={<Register />} />
             <Route path="/documents/:id" element={<DocumentDetail />} />
+            <Route path="/viewer/:id" element={<DocumentViewer />} />
             <Route path="/bepc"          element={<BepcPage />} />
             <Route path="/premiere"      element={<PremierePage />} />
             <Route path="/terminale"     element={<TerminalePage />} />

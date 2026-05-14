@@ -105,7 +105,16 @@ export default function DocumentDetail() {
 
   const quotaExhausted = user && quota && !quota.unlimited && quota.remaining === 0
 
-  // ✅ Version corrigée - une seule fenêtre qui s'ouvre dans un nouvel onglet
+  const handleView = () => {
+    if (!user) {
+      toast.error('Connectez-vous pour voir ce document')
+      navigate('/login', { state: { from: { pathname: `/documents/${id}` } } })
+      return
+    }
+    window.open(`/viewer/${id}`, '_blank', 'noopener,noreferrer')
+  }
+
+  // ✅ Téléchargement direct sans nouvelle fenêtre
   const handleDownload = async () => {
     if (!user) {
       toast.error('Connectez-vous pour télécharger ce document')
@@ -117,23 +126,15 @@ export default function DocumentDetail() {
     try {
       const { data } = await documentsApi.getDownloadUrl(id)
       
-      // ✅ Une seule fenêtre dans un nouvel onglet
-      // Solution 1: window.open avec _blank (recommandée)
-      const newWindow = window.open(data.downloadUrl, '_blank', 'noopener,noreferrer')
+      // Téléchargement direct sans ouvrir de fenêtre
+      const link = document.createElement('a')
+      link.href = data.downloadUrl
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       
-      // Solution 2 alternative (si besoin de forcer l'ouverture)
-      // if (!newWindow) {
-      //   // Si popup bloqué, utiliser un lien temporaire
-      //   const link = document.createElement('a')
-      //   link.href = data.downloadUrl
-      //   link.target = '_blank'
-      //   link.rel = 'noopener noreferrer'
-      //   document.body.appendChild(link)
-      //   link.click()
-      //   document.body.removeChild(link)
-      // }
-      
-      toast.success('Téléchargement démarré dans un nouvel onglet !')
+      toast.success('Téléchargement démarré !')
       qc.invalidateQueries(['myQuota'])
       qc.invalidateQueries(['document', id])
     } catch (err) {
@@ -374,28 +375,36 @@ export default function DocumentDetail() {
               </div>
             )}
 
-            {/* ✅ Bouton de téléchargement - une seule fenêtre dans un nouvel onglet */}
+            {/* ✅ Boutons Voir + Télécharger */}
             <div className="pt-4 space-y-3">
               {user ? (
                 <>
-                  <button
-                    onClick={handleDownload}
-                    disabled={downloading || quotaExhausted}
-                    className={`btn btn-lg w-full gap-3 transition-all duration-300 transform hover:scale-[1.02] ${
-                      quotaExhausted 
-                        ? 'btn-disabled bg-base-300' 
-                        : 'btn-primary shadow-lg hover:shadow-xl'
-                    }`}
-                  >
-                    {downloading
-                      ? <span className="loading loading-spinner loading-sm"></span>
-                      : quotaExhausted ? <Lock size={20} /> : <Download size={20} />
-                    }
-                    {downloading
-                      ? 'Préparation du téléchargement...'
-                      : quotaExhausted ? 'Quota de téléchargement épuisé' : 'Télécharger le document'
-                    }
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={handleView}
+                      className="btn btn-lg gap-3 transition-all duration-300 transform hover:scale-[1.02] btn-outline btn-primary shadow-lg hover:shadow-xl"
+                    >
+                      <Eye size={20} /> Voir
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      disabled={downloading || quotaExhausted}
+                      className={`btn btn-lg gap-3 transition-all duration-300 transform hover:scale-[1.02] ${
+                        quotaExhausted 
+                          ? 'btn-disabled bg-base-300' 
+                          : 'btn-primary shadow-lg hover:shadow-xl'
+                      }`}
+                    >
+                      {downloading
+                        ? <span className="loading loading-spinner loading-sm"></span>
+                        : quotaExhausted ? <Lock size={20} /> : <Download size={20} />
+                      }
+                      {downloading
+                        ? 'Préparation...'
+                        : quotaExhausted ? 'Quota épuisé' : 'Télécharger'
+                      }
+                    </button>
+                  </div>
 
                   {quotaExhausted && (
                     <div className="grid grid-cols-2 gap-3">

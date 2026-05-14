@@ -33,14 +33,6 @@ export default function Footer() {
     { icon: <Youtube   size={16} />, href: s?.youtubeUrl,   label: 'YouTube'   },
   ].filter(soc => soc.href && soc.href.trim() !== '')
 
-  // Si aucun réseau renseigné, afficher quand même les icônes avec href="#"
-  const socialsToShow = socials.length > 0 ? socials : [
-    { icon: <Facebook  size={16} />, href: '#', label: 'Facebook'  },
-    { icon: <Twitter   size={16} />, href: '#', label: 'Twitter'   },
-    { icon: <Instagram size={16} />, href: '#', label: 'Instagram' },
-    { icon: <Youtube   size={16} />, href: '#', label: 'YouTube'   },
-  ]
-
   return (
     <footer className="bg-neutral text-neutral-content mt-auto">
       <div className="max-w-6xl mx-auto px-4 py-12">
@@ -57,13 +49,14 @@ export default function Footer() {
             <p className="text-neutral-content/70 text-sm leading-relaxed">
               {siteDesc}
             </p>
-            {/* Réseaux sociaux */}
+            {/* Réseaux sociaux — uniquement ceux avec URL configurée */}
+            {socials.length > 0 && (
             <div className="flex gap-2 pt-1">
-              {socialsToShow.map(soc => (
+              {socials.map(soc => (
                 <a
                   key={soc.label}
                   href={soc.href}
-                  target={soc.href !== '#' ? '_blank' : undefined}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={soc.label}
                   className="w-8 h-8 rounded-lg bg-white/10 hover:bg-primary flex items-center justify-center transition-colors"
@@ -72,6 +65,7 @@ export default function Footer() {
                 </a>
               ))}
             </div>
+            )}
           </div>
 
           {/* Colonne 2 — Niveaux */}

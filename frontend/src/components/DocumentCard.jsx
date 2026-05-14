@@ -72,8 +72,13 @@ export default function DocumentCard({ doc, showFavorite = false, onFavorite, va
     try {
       const { data } = await documentsApi.getDownloadUrl(doc.id)
       
-      // Une seule fenêtre de téléchargement
-      window.open(data.downloadUrl, '_blank', 'noopener,noreferrer')
+      // Téléchargement direct sans ouvrir de fenêtre
+      const link = document.createElement('a')
+      link.href = data.downloadUrl
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       
       toast.success('Téléchargement démarré !')
     } catch (err) {
@@ -96,11 +101,11 @@ export default function DocumentCard({ doc, showFavorite = false, onFavorite, va
     }
   }
 
-  // Redirection vers la page du document (uniquement via bouton)
+  // Ouverture du viewer dans une nouvelle fenêtre
   const handleViewDocument = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    navigate(`/documents/${doc.id}`)
+    window.open(`/viewer/${doc.id}`, '_blank', 'noopener,noreferrer')
   }
 
   // Variantes de carte
@@ -324,7 +329,12 @@ export const DocumentCardHorizontal = ({ doc }) => {
     setIsDownloading(true)
     try {
       const { data } = await documentsApi.getDownloadUrl(doc.id)
-      window.open(data.downloadUrl, '_blank')
+      const link = document.createElement('a')
+      link.href = data.downloadUrl
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success('Téléchargement démarré !')
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erreur')
@@ -336,7 +346,7 @@ export const DocumentCardHorizontal = ({ doc }) => {
   const handleViewDocument = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    navigate(`/documents/${doc.id}`)
+    window.open(`/viewer/${doc.id}`, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -416,7 +426,12 @@ export const DocumentCardMobile = ({ doc }) => {
     setIsDownloading(true)
     try {
       const { data } = await documentsApi.getDownloadUrl(doc.id)
-      window.open(data.downloadUrl, '_blank')
+      const link = document.createElement('a')
+      link.href = data.downloadUrl
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success('Téléchargement démarré !')
     } catch (err) {
       toast.error('Erreur')
@@ -428,7 +443,7 @@ export const DocumentCardMobile = ({ doc }) => {
   const handleViewDocument = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    navigate(`/documents/${doc.id}`)
+    window.open(`/viewer/${doc.id}`, '_blank', 'noopener,noreferrer')
   }
 
   return (

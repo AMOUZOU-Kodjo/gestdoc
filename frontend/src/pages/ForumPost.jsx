@@ -1,5 +1,5 @@
 // src/pages/ForumPostPage.jsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -252,7 +252,6 @@ export default function ForumPostPage() {
   const qc = useQueryClient();
   const [replyText, setReplyText] = useState("");
   const [showShareTooltip, setShowShareTooltip] = useState(false);
-  const replyInputRef = useRef(null);
 
   const {
     data: post,
@@ -274,7 +273,6 @@ export default function ForumPostPage() {
       qc.invalidateQueries(["forumPost", id]);
       setReplyText("");
       toast.success("Réponse publiée !");
-      replyInputRef.current?.focus();
     },
     onError: (err) => toast.error(err.response?.data?.error || "Erreur"),
   });
@@ -601,19 +599,10 @@ export default function ForumPostPage() {
                         {replyText.length}/2000
                       </span>
                     </label>
-                    <textarea
-                      ref={replyInputRef}
-                      placeholder="Écrivez votre réponse... (Entrée pour envoyer, Shift+Entrée pour sauter une ligne)"
+                    <ScientificEditor
                       value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleReply();
-                        }
-                      }}
-                      className="textarea textarea-bordered w-full h-28 resize-none"
-                      maxLength={2000}
+                      onChange={setReplyText}
+                      placeholder="Écrivez votre réponse... Utilisez $$formule$$ pour les maths"
                     />
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="text-xs text-base-content/40 flex items-center gap-2">

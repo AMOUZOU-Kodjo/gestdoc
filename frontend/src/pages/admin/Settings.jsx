@@ -24,6 +24,7 @@ import {
   Smartphone,
   User,
   Tag,
+  MessageSquare,
   CheckCircle,
   XCircle,
   Eye,

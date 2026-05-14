@@ -119,6 +119,7 @@ export const documentsApi = {
   myUploads: () => api.get('/documents/my/uploads'),
   getRecommended: (classe, matiere) => 
     api.get(`/documents/recommended`, { params: { classe, matiere, limit: 4 } }),
+  getView: (id) => api.get(`/documents/${id}/view`),
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -136,7 +137,7 @@ export const usersApi = {
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 export const adminApi = {
-  stats: () => api.get('/admin/stats'),
+  stats: (params) => api.get('/admin/stats', { params }),
   getDocuments: (params) => api.get('/admin/documents', { params }),
   updateDocumentStatus: (id, status) => api.patch(`/admin/documents/${id}/status`, { status }),
   deleteDocument: (id) => api.delete(`/admin/documents/${id}`),

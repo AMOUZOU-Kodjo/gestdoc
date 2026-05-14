@@ -1,18 +1,45 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Crown, Upload, Download, Check, Phone, Star, Clock, Zap, Shield, TrendingUp, MessageCircle, Smartphone, Key, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Crown, Upload, Download, Check, Phone, Star, Clock, Zap, Shield, TrendingUp, Smartphone, Key, Lock, ArrowRight, AlertCircle, Mail, Copy, ExternalLink, CheckCircle, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { usersApi } from '../services/api'
 import api from '../services/api'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 const fetchSettings = () => api.get('/admin/settings').then(r => r.data).catch(() => null)
 
-// Mutation pour traiter le paiement mobile
 const processMobilePayment = async (paymentData) => {
   const response = await api.post('/payments/mobile', paymentData)
   return response.data
 }
+
+const OPERATEURS = [
+  {
+    id: 'tmoney',
+    nom: 'T-Money',
+    marchand: '70 85 59 01',
+    ussd: '*145#',
+    couleur: 'from-red-500 to-red-600',
+    bg: 'bg-red-50',
+    text: 'text-red-600',
+    border: 'border-red-200',
+    icon: '📱',
+    instruction: 'Composez *145# sur votre téléphone Moov, choisissez "Transfert" et envoyez le montant exact au numéro ci-dessous.',
+  },
+  {
+    id: 'flooz',
+    nom: 'Flooz',
+    marchand: '99 16 35 62',
+    ussd: '*155#',
+    couleur: 'from-green-500 to-green-600',
+    bg: 'bg-green-50',
+    text: 'text-green-600',
+    border: 'border-green-200',
+    icon: '💚',
+    instruction: 'Composez *155# sur votre téléphone Togocom, choisissez "Transfert" et envoyez le montant exact au numéro ci-dessous.',
+  },
+]
 
 const PLANS = [
   { 
@@ -65,10 +92,12 @@ const PLANS = [
 export default function Abonnement() {
   const { user } = useAuth()
   const [selectedPlan, setSelectedPlan] = useState(null)
+  const [selectedOperator, setSelectedOperator] = useState(null)
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [pinCode, setPinCode] = useState(['', '', '', ''])
+  const [paymentEmail, setPaymentEmail] = useState(user?.email || '')
+  const [transactionRef, setTransactionRef] = useState('')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentStep, setPaymentStep] = useState('form') // form, processing, success, error
+  const [paymentStep, setPaymentStep] = useState('operator') // operator, form, instructions, confirm, processing, success, error
   const [errorMessage, setErrorMessage] = useState('')
 
   const { data: quota, isLoading: quotaLoading } = useQuery({
@@ -86,80 +115,65 @@ export default function Abonnement() {
     mutationFn: processMobilePayment,
     onSuccess: (data) => {
       setPaymentStep('success')
-      // Recharger les données du quota après succès
-      setTimeout(() => {
-        window.location.reload()
-      }, 3000)
+      setTimeout(() => { window.location.reload() }, 3000)
     },
     onError: (error) => {
       setPaymentStep('error')
-      setErrorMessage(error.response?.data?.message || 'Le paiement a échoué. Vérifiez votre code ou solde.')
-      setTimeout(() => {
-        setPaymentStep('form')
-        setErrorMessage('')
-      }, 3000)
+      setErrorMessage(error.response?.data?.message || 'Erreur lors de la vérification de la transaction. Vérifiez votre référence et réessayez.')
     }
   })
-
-  const numero = settings?.donNumero || '+228 70 85 59 01'
-  const nom = settings?.donNom || 'AMOUZOU Kodjo'
 
   const handleAbonner = (plan) => {
     if (plan.prix === 0) return
     setSelectedPlan(plan)
+    setSelectedOperator(null)
     setPhoneNumber('')
-    setPinCode(['', '', '', ''])
-    setPaymentStep('form')
+    setPaymentEmail(user?.email || '')
+    setTransactionRef('')
+    setPaymentStep('operator')
     setShowPaymentModal(true)
   }
 
-  const handlePinChange = (index, value) => {
-    if (value.length <= 1 && /^\d*$/.test(value)) {
-      const newPin = [...pinCode]
-      newPin[index] = value
-      setPinCode(newPin)
-      
-      // Auto-focus next input
-      if (value && index < 3) {
-        const nextInput = document.getElementById(`pin-${index + 1}`)
-        if (nextInput) nextInput.focus()
-      }
-    }
+  const handleSelectOperator = (op) => {
+    setSelectedOperator(op)
+    setPaymentStep('form')
   }
 
-  const handleSubmitPayment = (e) => {
+  const handleGoToInstructions = (e) => {
     e.preventDefault()
-    
     if (!phoneNumber || phoneNumber.length < 8) {
       setErrorMessage('Numéro de téléphone invalide')
       return
     }
-    
-    const pin = pinCode.join('')
-    if (pin.length !== 4) {
-      setErrorMessage('Code PIN invalide (4 chiffres requis)')
+    if (!paymentEmail) {
+      setErrorMessage('Email requis pour recevoir votre reçu')
       return
     }
-    
+    setErrorMessage('')
+    setPaymentStep('instructions')
+  }
+
+  const handleConfirmPayment = (e) => {
+    e.preventDefault()
+    if (!transactionRef || transactionRef.length < 6) {
+      setErrorMessage('Veuillez saisir la référence de transaction reçue par SMS')
+      return
+    }
     setPaymentStep('processing')
     setErrorMessage('')
-    
     paymentMutation.mutate({
+      operator: selectedOperator.id,
       planId: selectedPlan.id,
       planCode: selectedPlan.code,
-      phoneNumber: phoneNumber,
-      pinCode: pin,
-      amount: selectedPlan.prix,
-      userId: user?.id,
-      userEmail: user?.email
+      phoneNumber,
+      transactionRef,
+      email: paymentEmail,
     })
   }
 
   const formatPhoneNumber = (value) => {
     const cleaned = value.replace(/\D/g, '')
-    if (cleaned.startsWith('228')) {
-      return cleaned.slice(0, 12)
-    }
+    if (cleaned.startsWith('228')) return cleaned.slice(0, 12)
     return cleaned.slice(0, 8)
   }
 
@@ -171,9 +185,11 @@ export default function Abonnement() {
   const closeModal = () => {
     setShowPaymentModal(false)
     setSelectedPlan(null)
+    setSelectedOperator(null)
     setPhoneNumber('')
-    setPinCode(['', '', '', ''])
-    setPaymentStep('form')
+    setPaymentEmail(user?.email || '')
+    setTransactionRef('')
+    setPaymentStep('operator')
     setErrorMessage('')
   }
 
@@ -336,7 +352,7 @@ export default function Abonnement() {
         <div className="text-center text-sm text-base-content/60 animate-fade-in-up animation-delay-300">
           <div className="flex items-center justify-center gap-2">
             <Shield size={14} />
-            <span>Paiement 100% sécurisé via T-Money</span>
+            <span>Paiement sécurisé via T-Money (*888#) et Flooz (*855#)</span>
           </div>
         </div>
       </div>
@@ -344,142 +360,229 @@ export default function Abonnement() {
       {/* Modal de paiement mobile */}
       {showPaymentModal && selectedPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="card bg-base-100 max-w-md w-full shadow-2xl animate-scale-in overflow-hidden">
-            {paymentStep === 'form' && (
+          <div className="card bg-base-100 max-w-lg w-full shadow-2xl animate-scale-in overflow-y-auto max-h-[90vh]">
+
+            {/* ÉTAPE 1 : Choix de l'opérateur */}
+            {paymentStep === 'operator' && (
               <div className="card-body p-6">
-                <div className="text-center mb-4">
-                  <div className="p-3 bg-primary/10 rounded-full inline-flex mb-3">
-                    <Smartphone size={32} className="text-primary" />
-                  </div>
-                  <h3 className="font-bold text-xl">Paiement Mobile</h3>
+                <div className="text-center mb-6">
+                  <Smartphone size={36} className="mx-auto text-primary mb-2" />
+                  <h3 className="font-bold text-xl">Choisissez votre opérateur</h3>
                   <p className="text-sm text-base-content/60 mt-1">
-                    Plan {selectedPlan.label} - {selectedPlan.prix.toLocaleString('fr-FR')} FCFA
+                    Plan {selectedPlan.label} — {selectedPlan.prix.toLocaleString('fr-FR')} FCFA
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmitPayment} className="space-y-5">
-                  {/* Numéro de téléphone */}
+                <div className="space-y-3">
+                  {OPERATEURS.map(op => (
+                    <button
+                      key={op.id}
+                      onClick={() => handleSelectOperator(op)}
+                      className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-base-200 hover:border-primary hover:bg-primary/5 transition-all text-left group"
+                    >
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${op.couleur} flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform`}>
+                        {op.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-lg">{op.nom}</p>
+                        <p className="text-sm text-base-content/60">Marchand : <strong>{op.marchand}</strong></p>
+                      </div>
+                      <ArrowRight size={20} className="text-base-content/30 group-hover:text-primary transition-colors" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="modal-action mt-6">
+                  <button onClick={closeModal} className="btn btn-ghost w-full">Annuler</button>
+                </div>
+              </div>
+            )}
+
+            {/* ÉTAPE 2 : Email + Téléphone */}
+            {paymentStep === 'form' && selectedOperator && (
+              <div className="card-body p-6">
+                <button onClick={() => setPaymentStep('operator')} className="btn btn-ghost btn-sm btn-square mb-2">
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="text-center mb-4">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${selectedOperator.couleur} flex items-center justify-center text-2xl mx-auto mb-2`}>
+                    {selectedOperator.icon}
+                  </div>
+                  <h3 className="font-bold text-xl">{selectedOperator.nom}</h3>
+                  <p className="text-sm text-base-content/60 mt-1">
+                    Plan {selectedPlan.label} — {selectedPlan.prix.toLocaleString('fr-FR')} FCFA
+                  </p>
+                </div>
+
+                <form onSubmit={handleGoToInstructions} className="space-y-4">
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold flex items-center gap-2">
-                        <Phone size={14} /> Numéro T-Money/Moov
+                        <Mail size={14} /> Email de confirmation
+                      </span>
+                    </label>
+                    <input type="email" value={paymentEmail} onChange={e => setPaymentEmail(e.target.value)} placeholder="votre@email.com" className="input input-bordered w-full" required />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold flex items-center gap-2">
+                        <Phone size={14} /> Votre numéro de téléphone
                       </span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-base-content/40 text-sm">+228</span>
-                      </div>
-                      <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                        placeholder="70 85 59 01"
-                        className="input input-bordered w-full pl-16"
-                        required
-                        autoFocus
-                      />
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-base-content/40 text-sm">+228</span>
+                      <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(formatPhoneNumber(e.target.value))} placeholder="70 85 59 01" className="input input-bordered w-full pl-16" required autoFocus />
                     </div>
-                    <label className="label">
-                      <span className="label-text-alt text-base-content/50">
-                        Entrez votre numéro sans l'indicateur +228
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Code PIN */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold flex items-center gap-2">
-                        <Key size={14} /> Code secret (PIN)
-                      </span>
-                    </label>
-                    <div className="flex gap-3 justify-center">
-                      {pinCode.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`pin-${index}`}
-                          type="password"
-                          maxLength="1"
-                          value={digit}
-                          onChange={(e) => handlePinChange(index, e.target.value)}
-                          className="input input-bordered w-14 h-14 text-center text-xl font-bold"
-                          inputMode="numeric"
-                          pattern="\d*"
-                          required
-                        />
-                      ))}
-                    </div>
-                    <label className="label">
-                      <span className="label-text-alt text-base-content/50">
-                        Code à 4 chiffres reçu par SMS
-                      </span>
-                    </label>
                   </div>
 
                   {errorMessage && (
                     <div className="alert alert-error shadow-lg text-sm">
-                      <AlertCircle size={16} />
-                      <span>{errorMessage}</span>
+                      <AlertCircle size={16} /> <span>{errorMessage}</span>
                     </div>
                   )}
 
-                  <div className="modal-action flex gap-3 mt-6">
-                    <button type="button" onClick={closeModal} className="btn btn-ghost flex-1">
-                      Annuler
-                    </button>
+                  <div className="modal-action flex gap-3 mt-4">
+                    <button type="button" onClick={closeModal} className="btn btn-ghost flex-1">Annuler</button>
                     <button type="submit" className="btn btn-primary flex-1 gap-2">
-                      <Lock size={14} /> Payer {selectedPlan.prix.toLocaleString('fr-FR')} FCFA
+                      Continuer <ArrowRight size={16} />
                     </button>
                   </div>
                 </form>
               </div>
             )}
 
+            {/* ÉTAPE 3 : Instructions d'envoi */}
+            {paymentStep === 'instructions' && selectedOperator && (
+              <div className="card-body p-6">
+                <button onClick={() => setPaymentStep('form')} className="btn btn-ghost btn-sm btn-square mb-2">
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="text-center mb-4">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${selectedOperator.couleur} flex items-center justify-center text-2xl mx-auto mb-2`}>
+                    {selectedOperator.icon}
+                  </div>
+                  <h3 className="font-bold text-lg">Envoyez l'argent</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Numéro marchand + montant */}
+                  <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
+                    <p className="text-xs text-base-content/50 mb-2">Envoyez le montant exact à :</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-base-content/60">{selectedOperator.nom}</p>
+                        <p className="text-2xl font-bold tracking-wider">{selectedOperator.marchand}</p>
+                      </div>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(selectedOperator.marchand.replace(/\s/g, '')); toast.success('Numéro copié !') }}
+                        className="btn btn-ghost btn-sm btn-square"
+                        title="Copier le numéro"
+                      >
+                        <Copy size={18} />
+                      </button>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-primary/10">
+                      <p className="text-xs text-base-content/50">Montant exact à envoyer</p>
+                      <p className="text-3xl font-bold text-primary">{selectedPlan.prix.toLocaleString('fr-FR')} <span className="text-lg">FCFA</span></p>
+                    </div>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="bg-base-200 rounded-xl p-4 text-sm space-y-2">
+                    <p className="font-semibold flex items-center gap-2"><ExternalLink size={14} /> Comment faire ?</p>
+                    <ol className="text-base-content/70 space-y-1.5 ml-4 list-decimal">
+                      <li>Composez <strong>{selectedOperator.ussd}</strong> sur votre téléphone</li>
+                      <li>Choisissez <strong>"Transfert"</strong> ou <strong>"Envoyer de l'argent"</strong></li>
+                      <li>Entrez le numéro marchand : <strong>{selectedOperator.marchand}</strong></li>
+                      <li>Entrez le montant exact de <strong>{selectedPlan.prix.toLocaleString('fr-FR')} FCFA</strong></li>
+                      <li>Confirmez avec votre code secret</li>
+                      <li>Vous recevrez un <strong>SMS de confirmation</strong> avec une référence de transaction</li>
+                    </ol>
+                  </div>
+
+                  {/* Saisie référence */}
+                  <form onSubmit={handleConfirmPayment} className="space-y-3 pt-2">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold flex items-center gap-2">
+                          <Key size={14} /> Référence de transaction
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={transactionRef}
+                        onChange={e => setTransactionRef(e.target.value)}
+                        placeholder={selectedOperator.id === 'tmoney' ? 'Ex: TXV123456789, TV987654...' : 'Ex: MOMO123456789, MO987654...'}
+                        className="input input-bordered w-full font-mono text-sm"
+                        required
+                        autoFocus
+                      />
+                      <label className="label">
+                        <span className="label-text-alt text-base-content/50">
+                          Saisissez la référence reçue par SMS après votre paiement
+                        </span>
+                      </label>
+                    </div>
+
+                    {errorMessage && (
+                      <div className="alert alert-error shadow-lg text-sm">
+                        <AlertCircle size={16} /> <span>{errorMessage}</span>
+                      </div>
+                    )}
+
+                    <div className="modal-action flex gap-3 mt-2">
+                      <button type="button" onClick={closeModal} className="btn btn-ghost flex-1">Annuler</button>
+                      <button type="submit" className="btn btn-success flex-1 gap-2">
+                        <CheckCircle size={16} /> Confirmer le paiement
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* ÉTAPE 4 : Traitement */}
             {paymentStep === 'processing' && (
               <div className="card-body p-8 text-center">
                 <div className="flex flex-col items-center gap-4">
                   <div className="loading loading-spinner loading-lg text-primary"></div>
-                  <h3 className="font-bold text-xl">Traitement en cours...</h3>
-                  <p className="text-sm text-base-content/60">
-                    Nous vérifions votre paiement auprès de T-Money
-                  </p>
-                  <p className="text-xs text-base-content/40 mt-2">
-                    Ne fermez pas cette fenêtre
-                  </p>
+                  <h3 className="font-bold text-xl">Vérification en cours...</h3>
+                  <p className="text-sm text-base-content/60">Nous vérifions votre transaction auprès de {selectedOperator?.nom}</p>
+                  <p className="text-xs text-base-content/40 mt-2">Ne fermez pas cette fenêtre</p>
                 </div>
               </div>
             )}
 
+            {/* ÉTAPE 5 : Succès */}
             {paymentStep === 'success' && (
               <div className="card-body p-8 text-center">
                 <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center animate-scale-in">
                     <Check size={40} className="text-success" />
                   </div>
-                  <h3 className="font-bold text-xl text-success">Paiement réussi !</h3>
+                  <h3 className="font-bold text-xl text-success">Abonnement activé !</h3>
                   <p className="text-sm text-base-content/70">
                     Votre abonnement {selectedPlan.label} a été activé avec succès.
                   </p>
-                  <p className="text-xs text-base-content/50 mt-2">
-                    Redirection en cours...
-                  </p>
+                  <p className="text-xs text-base-content/50">Redirection en cours...</p>
                 </div>
               </div>
             )}
 
+            {/* ÉTAPE 6 : Erreur */}
             {paymentStep === 'error' && (
               <div className="card-body p-8 text-center">
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-error/20 flex items-center justify-center">
                     <AlertCircle size={40} className="text-error" />
                   </div>
-                  <h3 className="font-bold text-xl text-error">Paiement échoué</h3>
-                  <p className="text-sm text-base-content/70">
-                    {errorMessage}
-                  </p>
-                  <button onClick={() => setPaymentStep('form')} className="btn btn-primary mt-4">
-                    Réessayer
-                  </button>
+                  <h3 className="font-bold text-xl text-error">Transaction non confirmée</h3>
+                  <p className="text-sm text-base-content/70">{errorMessage}</p>
+                  <div className="flex gap-3 mt-4">
+                    <button onClick={() => setPaymentStep('instructions')} className="btn btn-primary">Réessayer</button>
+                    <button onClick={closeModal} className="btn btn-ghost">Fermer</button>
+                  </div>
                 </div>
               </div>
             )}

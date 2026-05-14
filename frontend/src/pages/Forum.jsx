@@ -8,6 +8,8 @@ import {
   Sparkles, Filter, ChevronDown, Award, Users
 } from 'lucide-react'
 import { forumApi } from '../services/api'
+import ScientificEditor from '../components/ScientificEditor'
+import ScientificContent from '../components/ScientificContent'
 import { useAuth } from '../contexts/AuthContext'
 import { NIVEAUX } from '../utils/constants'
 import UserAvatar from '../components/UserAvatar'
@@ -80,9 +82,9 @@ const ForumPost = ({ post, onDelete, onLike, isDeleting, currentUser }) => {
             </div>
 
             {/* Aperçu du contenu */}
-            <p className="text-sm text-base-content/70 line-clamp-2 mt-1.5">
-              {post.contenu}
-            </p>
+            <div className="text-sm text-base-content/70 line-clamp-2 mt-1.5">
+              <ScientificContent content={post.contenu} />
+            </div>
 
             {/* Métadonnées utilisateur */}
             <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -445,12 +447,10 @@ export default function Forum() {
                   <span className="label-text font-medium">Message *</span>
                   <span className="label-text-alt text-base-content/50">{newPost.contenu.length}/5000</span>
                 </label>
-                <textarea 
-                  placeholder="Décrivez votre question ou partagez votre expérience en détail..."
+                <ScientificEditor
                   value={newPost.contenu}
-                  onChange={e => setNewPost(p => ({ ...p, contenu: e.target.value }))}
-                  className={`textarea textarea-bordered w-full h-32 resize-none ${errors.contenu ? 'textarea-error' : ''}`}
-                  maxLength={5000}
+                  onChange={(val) => setNewPost(p => ({ ...p, contenu: val }))}
+                  placeholder="Décrivez votre question ou partagez votre expérience en détail... Utilisez $$formule$$ pour les maths"
                 />
                 {errors.contenu && (
                   <label className="label">
