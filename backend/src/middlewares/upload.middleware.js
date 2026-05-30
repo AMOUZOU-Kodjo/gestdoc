@@ -15,7 +15,7 @@ const ALLOWED_MIMES = [
   'application/msword',
 ];
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20 Mo
+const MAX_SIZE = 100 * 1024 * 1024; // 100 Mo
 
 const storage    = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
@@ -70,7 +70,7 @@ const uploadSingle = (fieldName) => async (req, res, next) => {
   upload.single(fieldName)(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE')
-        return res.status(400).json({ error: 'Le fichier dépasse la limite de 20 Mo.' });
+        return res.status(400).json({ error: 'Le fichier dépasse la limite de 100 Mo.' });
       return res.status(400).json({ error: 'Erreur upload: ' + err.message });
     }
     if (err)       return res.status(400).json({ error: err.message });
