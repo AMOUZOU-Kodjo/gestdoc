@@ -6,7 +6,7 @@ import { documentsApi } from '../services/api'
 import { NIVEAUX, CLASSES_BY_NIVEAU, MATIERES_BY_NIVEAU, YEARS } from '../utils/constants'
 import toast from 'react-hot-toast'
 
-const MAX_SIZE    = 20 * 1024 * 1024
+const MAX_SIZE    = 100* 1024 * 1024 // 100 Mo
 const ALLOWED     = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 
 // Composant pour les informations d'un document
